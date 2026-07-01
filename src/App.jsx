@@ -232,7 +232,7 @@ function botBetRound(markets, balance) {
 function initCompetitionState(comp) {
   return {
     round: 1,
-    stage: "upcoming",
+    stage: "betting",
     markets: newRoundMarkets(comp, 1),
     balance: 0,
     bets: [],
@@ -269,6 +269,12 @@ export default function PlatformMock() {
   const [nameError, setNameError] = useState("");
   const [userCountry, setUserCountry] = useState(COUNTRIES[0]);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [userReferralCode] = useState(() => Math.random().toString(36).slice(2, 8).toUpperCase());
+  const [referralInput, setReferralInput] = useState("");
+  const [referralBonusComp, setReferralBonusComp] = useState("epl");
+  const [referralsEarned, setReferralsEarned] = useState(0);
+  const [referralRewardComp, setReferralRewardComp] = useState("epl");
+  const [copiedCode, setCopiedCode] = useState(false);
   const [favouriteTeamByComp, setFavouriteTeamByComp] = useState({});
   const [botProfiles] = useState(() => Object.fromEntries(BOTS.map((b) => [b, randomBotProfile()])));
 
@@ -350,8 +356,19 @@ export default function PlatformMock() {
     });
   }
 
-  function openBetting() {
-    updateComp(activeCompKey, (s) => ({ ...s, stage: "betting" }));
+  function applyReferralBonus(compKey) {
+    updateComp(compKey, (s) => ({ ...s, balance: s.balance + 500 }));
+  }
+
+  function simulateFriendJoining() {
+    applyReferralBonus(referralRewardComp);
+    setReferralsEarned((n) => n + 1);
+  }
+
+  function copyReferralCode() {
+    navigator.clipboard?.writeText(userReferralCode).catch(() => {});
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   }
 
   function advanceToLockout() {
@@ -427,7 +444,7 @@ export default function PlatformMock() {
         botBalances: newSeasonStarting ? Object.fromEntries(BOTS.map((b) => [b, 0])) : s.botBalances,
         botBetsThisRound: {},
         botForfeitThisRound: {},
-        stage: "upcoming",
+        stage: "betting",
       };
     });
     setAdBoostTotal(0); // cap resets each round — users can earn up to 1000 nuts per round via ads
@@ -551,9 +568,32 @@ export default function PlatformMock() {
             <input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, accentColor: "#2FA86C" }} />
             <span>I confirm I am 17 years of age or older. BYN is play-money only with no real-money wagering, but is still restricted by app store policy for simulated gambling content.</span>
           </label>
+
+          <div style={{ background: "#0F2920", border: "1px solid #1c5f3f", borderRadius: 10, padding: 12, marginBottom: 16, textAlign: "left" }}>
+            <div className="sg" style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Got a referral code? <span style={{ color: "#7FBFA0", fontWeight: 400 }}>(optional)</span></div>
+            <input
+              placeholder="Enter code e.g. A1B2C3"
+              value={referralInput}
+              onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", marginBottom: 8, fontSize: 13 }}
+            />
+            {referralInput.length >= 6 && (
+              <>
+                <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 6 }}>✓ Code accepted — apply your 500 nut welcome bonus to:</div>
+                <select
+                  value={referralBonusComp}
+                  onChange={(e) => setReferralBonusComp(e.target.value)}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13 }}
+                >
+                  {COMPETITIONS.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+                </select>
+              </>
+            )}
+          </div>
+
           <button
             disabled={!userName.trim() || !!nameError || !ageConfirmed}
-            onClick={() => setScreen("app")}
+            onClick={() => { if (referralInput.length >= 6) applyReferralBonus(referralBonusComp); setScreen("app"); }}
             className="sg"
             style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}
           >
@@ -561,7 +601,7 @@ export default function PlatformMock() {
           </button>
           <button
             disabled={!userName.trim() || !!nameError || !ageConfirmed}
-            onClick={() => setScreen("app")}
+            onClick={() => { if (referralInput.length >= 6) applyReferralBonus(referralBonusComp); setScreen("app"); }}
             className="sg"
             style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: userName.trim() && !nameError && ageConfirmed ? "#F4F7F2" : "#5E8775", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
@@ -667,6 +707,13 @@ export default function PlatformMock() {
             setAdBoostCompKey={setAdBoostCompKey}
             adWatching={adWatching}
             watchAd={watchAd}
+            userReferralCode={userReferralCode}
+            referralsEarned={referralsEarned}
+            referralRewardComp={referralRewardComp}
+            setReferralRewardComp={setReferralRewardComp}
+            simulateFriendJoining={simulateFriendJoining}
+            copyReferralCode={copyReferralCode}
+            copiedCode={copiedCode}
           />
         )}
 
@@ -748,47 +795,6 @@ export default function PlatformMock() {
 
             {tab === "markets" && (
               <>
-                {cd.stage === "upcoming" && (
-                  <div style={{ ...card, marginTop: 0 }}>
-                    <div className="sg" style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                      <CalendarClock size={16} color="#7FBFA0" /> {roundLabel(comp, cd.round)} — coming up
-                    </div>
-                    <div style={{ fontSize: 12, color: "#9DBFAF", marginBottom: 14 }}>
-                      The betting window opens <strong>5 days before the first event</strong> of this round. Markets are visible now so you can plan your bets — you just can't stake yet.
-                    </div>
-
-                    <div style={{ marginBottom: 14 }}>
-                      {cd.markets.map((m) => {
-                        const p = prices(m.q, m.b);
-                        return (
-                          <div key={m.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #16352A", background: "#0F2920", marginBottom: 8 }}>
-                            <div className="sg" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{m.name}</div>
-                            <div style={{ display: "flex", gap: 6 }}>
-                              {m.outcomes.map((label, oi) => (
-                                <div key={oi} className="mono" style={{ flex: 1, padding: "7px 4px", borderRadius: 8, fontSize: 12, textAlign: "center", border: "1px solid #16352A", color: "#9DBFAF" }}>
-                                  <div style={{ fontSize: 11 }}>{m.outcomes.length > 4 ? label : label.slice(0, 3)}</div>
-                                  <div style={{ color: "#7FBFA0", fontWeight: 600 }}>{(p[oi] * 100).toFixed(0)}%</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: "#16352A", marginBottom: 14, fontSize: 11 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#7FBFA0", flexShrink: 0 }} />
-                      <span style={{ color: "#9DBFAF" }}>
-                        <strong style={{ color: "#F4F7F2" }}>Timeline:</strong> opens 5 days before &rarr; <strong style={{ color: "#D9A441" }}>locks 1 hour before kickoff</strong> &rarr; settles after final whistle
-                      </span>
-                    </div>
-
-                    <button onClick={openBetting} className="sg" style={{ width: "100%", padding: 12, borderRadius: 10, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 14 }}>
-                      Open betting window (demo: simulate 5-day wait)
-                    </button>
-                  </div>
-                )}
-
                 {cd.stage === "betting" && (
                   <>
                     <div style={{ display: "flex", gap: 8, padding: 10, borderRadius: 8, background: "#16352A", marginBottom: 12, fontSize: 11, color: "#7FBFA0" }}>
@@ -990,13 +996,12 @@ function BetList({ bets, markets }) {
 
 function StageBadge({ stage }) {
   const map = {
-    upcoming: { label: "Upcoming", color: "#7FBFA0" },
-    betting:  { label: "Open",     color: "#2FA86C" },
-    locked:   { label: "Locked",   color: "#D9A441" },
-    settled:  { label: "Settled",  color: "#9DBFAF" },
+    betting:  { label: "Open",       color: "#2FA86C" },
+    locked:   { label: "Locked",     color: "#D9A441" },
+    settled:  { label: "Settled",    color: "#9DBFAF" },
     gated:    { label: "Not active", color: "#5E8775" },
   };
-  const s = map[stage] || map["upcoming"];
+  const s = map[stage] || map["betting"];
   return <div className="mono" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 999, border: `1px solid ${s.color}`, color: s.color }}>{s.label}</div>;
 }
 
@@ -1211,7 +1216,7 @@ function HowToPlayScreen() {
   );
 }
 
-function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouriteTeamByComp, FLAG_MAP, baseLeagueSlots, extraLeagueSlots, maxLeagueSlots, adBoostTotal, adBoostMax, adBoostPerView, adBoostCompKey, setAdBoostCompKey, adWatching, watchAd }) {
+function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouriteTeamByComp, FLAG_MAP, baseLeagueSlots, extraLeagueSlots, maxLeagueSlots, adBoostTotal, adBoostMax, adBoostPerView, adBoostCompKey, setAdBoostCompKey, adWatching, watchAd, userReferralCode, referralsEarned, referralRewardComp, setReferralRewardComp, simulateFriendJoining, copyReferralCode, copiedCode }) {
   const myGroups = groups.filter((g) => g.members.includes(userName));
   const leaguesUsed = myGroups.length;
   const extraPurchased = extraLeagueSlots; // in packs of 3
@@ -1320,6 +1325,38 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
           {leaguesUsed >= maxLeagueSlots && (
             <div style={{ fontSize: 11, color: "#D9A441", marginTop: 8 }}>All slots used — purchase a pack of 3 extra slots to join or create more leagues.</div>
           )}
+        </div>
+
+        {/* Referrals section */}
+        <div style={{ borderTop: "1px solid #16352A", paddingTop: 10, marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Refer a friend</div>
+          <div style={{ fontSize: 12, color: "#9DBFAF", marginBottom: 10 }}>
+            Share your code and you both get <span className="mono" style={{ color: "#F4F7F2", fontWeight: 600 }}>500 nuts</span> when they sign up. No limit on how many friends you can refer.
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1, padding: "10px 12px", borderRadius: 8, background: "#16352A", border: "1px solid #2f6b4d" }}>
+              <div style={{ fontSize: 10, color: "#7FBFA0", marginBottom: 2 }}>Your referral code</div>
+              <div className="mono" style={{ fontSize: 18, fontWeight: 700, color: "#2FA86C", letterSpacing: 2 }}>{userReferralCode}</div>
+            </div>
+            <button onClick={copyReferralCode} className="sg" style={{ padding: "0 14px", borderRadius: 8, border: "1px solid #2f6b4d", background: copiedCode ? "#16352A" : "transparent", color: copiedCode ? "#2FA86C" : "#7FBFA0", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+              {copiedCode ? "✓ Copied!" : "Copy code"}
+            </button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+            <StatPill label="Friends referred" value={referralsEarned} neutral />
+            <StatPill label="Nuts earned" value={`${referralsEarned * 500}`} ok={referralsEarned > 0} />
+          </div>
+          <div style={{ fontSize: 11, color: "#7FBFA0", marginBottom: 6 }}>When a friend joins, apply your 500 nut bonus to:</div>
+          <select
+            value={referralRewardComp}
+            onChange={(e) => setReferralRewardComp(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13, marginBottom: 8 }}
+          >
+            {COMPETITIONS.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+          </select>
+          <button onClick={simulateFriendJoining} className="sg" style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #2f6b4d", background: "transparent", color: "#7FBFA0", fontSize: 12, fontWeight: 600 }}>
+            Simulate a friend joining with your code (demo only)
+          </button>
         </div>
       </div>
 
