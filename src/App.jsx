@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
+import { supabase } from "./supabase.js";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
 function prices(q, b) {
@@ -265,6 +266,45 @@ function SponsorBanner({ label, sublabel, houseAd }) {
 export default function PlatformMock() {
   const [showLoginHowTo, setShowLoginHowTo] = useState(false);
   const [screen, setScreen] = useState("login");
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  // ── Real auth: check for existing session on load ──
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
+        setScreen("app");
+      }
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
+        setScreen("app");
+      } else {
+        setScreen("login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function signInWithGoogle() {
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) setAuthError(error.message);
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
   const [userName, setUserName] = useState("");
   const [nameError, setNameError] = useState("");
   const [userCountry, setUserCountry] = useState(COUNTRIES[0]);
@@ -497,6 +537,22 @@ export default function PlatformMock() {
     setJoinCode("");
   }
 
+  if (authLoading) {
+    return (
+      <div style={{ ...shell, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{fontImports}</style>
+        <div style={{ textAlign: "center" }}>
+          <svg viewBox="0 0 80 80" width="48" height="48" style={{ marginBottom: 12 }}>
+            <rect x="0" y="0" width="80" height="80" rx="18" fill="#2FA86C"/>
+            <polygon points="40,14 63,27 63,53 40,66 17,53 17,27" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+            <circle cx="40" cy="40" r="10" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+          </svg>
+          <div className="sg" style={{ color: "#7FBFA0", fontSize: 13 }}>Loading BYN...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (screen === "login") {
     if (showLoginHowTo) {
       return (
@@ -591,13 +647,17 @@ export default function PlatformMock() {
             )}
           </div>
 
+          {authError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8 }}>{authError}</div>}
           <button
             disabled={!userName.trim() || !!nameError || !ageConfirmed}
-            onClick={() => { if (referralInput.length >= 6) applyReferralBonus(referralBonusComp); setScreen("app"); }}
+            onClick={async () => {
+              if (referralInput.length >= 6) applyReferralBonus(referralBonusComp);
+              await signInWithGoogle();
+            }}
             className="sg"
             style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}
           >
-            <LogIn size={16} /> Continue with Google (mock)
+            <LogIn size={16} /> Continue with Google
           </button>
           <button
             disabled={!userName.trim() || !!nameError || !ageConfirmed}
@@ -605,10 +665,10 @@ export default function PlatformMock() {
             className="sg"
             style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: userName.trim() && !nameError && ageConfirmed ? "#F4F7F2" : "#5E8775", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
-             Continue with Apple (mock)
+             Continue with Apple (coming soon)
           </button>
-          <p style={{ color: "#5E8775", fontSize: 10, marginTop: 6 }}>Apple Sign In required for iOS submission (App Store Guideline 4.8) since Google is otherwise the only login option.</p>
-          <p style={{ color: "#5E8775", fontSize: 11, marginTop: 14 }}>Real build uses Google + Apple OAuth via Supabase Auth. This demo just takes a name.</p>
+          <p style={{ color: "#5E8775", fontSize: 10, marginTop: 6 }}>Apple Sign In will be added before App Store submission.</p>
+          <p style={{ color: "#5E8775", fontSize: 11, marginTop: 14 }}>Real build uses Google OAuth via Supabase Auth.</p>
         </div>
       </div>
     );
@@ -645,6 +705,14 @@ export default function PlatformMock() {
               style={{ width: 34, height: 34, borderRadius: "50%", border: `1px solid ${tab === "howto" ? "#2FA86C" : "#1c5f3f"}`, background: tab === "howto" ? "#16352A" : "transparent", color: tab === "howto" ? "#2FA86C" : "#7FBFA0", display: "flex", alignItems: "center", justifyContent: "center" }}
             >
               <HelpCircle size={15} />
+            </button>
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="sg"
+              style={{ height: 34, padding: "0 10px", borderRadius: 17, border: "1px solid #1c5f3f", background: "transparent", color: "#5E8775", fontSize: 11, fontWeight: 600 }}
+            >
+              Sign out
             </button>
             <StageBadge stage={gated ? "gated" : cd.stage} />
           </div>
