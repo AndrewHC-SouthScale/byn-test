@@ -1,6 +1,6 @@
 // Odds Service — The Odds API integration
 // NOTE: API calls currently disabled to preserve quota during testing
-// Re-enable by removing the early return in fetchUpcomingFixtures
+// To re-enable: remove the early return from fetchUpcomingFixtures below
 
 const BASE_URL = 'https://api.the-odds-api.com/v4'
 const API_KEY = import.meta.env.VITE_ODDS_API_KEY
@@ -17,27 +17,21 @@ const SPORT_KEY_MAP = {
 
 const OUTRIGHT_COMPS = new Set(['pga'])
 
-export async function fetchUpcomingFixtures(competitionKey, daysAhead = 14) {
-  // ── API DISABLED during testing to preserve quota ──
-  // Remove this return to re-enable live odds
-  return []
-}
-
-// ── De-vig: convert raw decimal odds to fair probabilities ────────────────────
 function devig(decimalOdds) {
   const implied = decimalOdds.map((o) => 1 / Math.max(o, 1.01))
   const total = implied.reduce((a, p) => a + p, 0)
   return implied.map((p) => p / total)
 }
 
-// ── Fetch upcoming fixtures (h2h markets — football, NFL etc) ─────────────────
+// ── MAIN ENTRY POINT ──────────────────────────────────────────────────────────
 export async function fetchUpcomingFixtures(competitionKey, daysAhead = 14) {
+  // API disabled during testing — remove this return to re-enable
+  return []
+
+  // eslint-disable-next-line no-unreachable
   const sportKey = SPORT_KEY_MAP[competitionKey]
   if (!sportKey) return []
-
-  if (OUTRIGHT_COMPS.has(competitionKey)) {
-    return fetchOutrightOdds(competitionKey, daysAhead)
-  }
+  if (OUTRIGHT_COMPS.has(competitionKey)) return fetchOutrightOdds(competitionKey, daysAhead)
 
   try {
     const url = new URL(`${BASE_URL}/sports/${sportKey}/odds`)
@@ -48,35 +42,26 @@ export async function fetchUpcomingFixtures(competitionKey, daysAhead = 14) {
     url.searchParams.set('dateFormat', 'iso')
 
     const response = await fetch(url.toString())
-    if (!response.ok) {
-      console.error('Odds API error:', response.status)
-      return []
-    }
+    if (!response.ok) return []
 
     const data = await response.json()
-
-    // Filter to fixtures starting within daysAhead
     const now = new Date()
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() + daysAhead)
 
-    const upcoming = data.filter((f) => {
-      const t = new Date(f.commence_time)
-      return t >= now && t <= cutoff
-    })
-
-    return upcoming.map((f) => processH2HFixture(f, competitionKey)).filter(Boolean)
+    return data
+      .filter((f) => { const t = new Date(f.commence_time); return t >= now && t <= cutoff })
+      .map((f) => processH2HFixture(f, competitionKey))
+      .filter(Boolean)
   } catch (err) {
     console.error('Error fetching fixtures:', err)
     return []
   }
 }
 
-// ── Fetch outright (race/tournament winner) odds — for F1, PGA etc ────────────
 async function fetchOutrightOdds(competitionKey, daysAhead = 14) {
   const sportKey = SPORT_KEY_MAP[competitionKey]
   if (!sportKey) return []
-
   try {
     const url = new URL(`${BASE_URL}/sports/${sportKey}/odds`)
     url.searchParams.set('apiKey', API_KEY)
@@ -86,160 +71,80 @@ async function fetchOutrightOdds(competitionKey, daysAhead = 14) {
     url.searchParams.set('dateFormat', 'iso')
 
     const response = await fetch(url.toString())
-    if (!response.ok) {
-      console.error('Odds API error (outrights):', response.status)
-      return []
-    }
+    if (!response.ok) return []
 
     const data = await response.json()
     if (!data?.length) return []
 
-    // Filter to events within daysAhead
     const now = new Date()
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() + daysAhead)
 
-    const upcoming = data.filter((f) => {
-      const t = new Date(f.commence_time)
-      return t >= now && t <= cutoff
-    })
-
+    const upcoming = data.filter((f) => { const t = new Date(f.commence_time); return t >= now && t <= cutoff })
     if (!upcoming.length) return []
 
-    // Take the first (soonest) event
     const event = upcoming[0]
-    const bookmaker = event.bookmakers?.find(
-      (b) => ['bet365', 'betfair', 'williamhill'].includes(b.key)
-    ) || event.bookmakers?.[0]
-
+    const bookmaker = event.bookmakers?.find((b) => ['bet365','betfair','williamhill'].includes(b.key)) || event.bookmakers?.[0]
     if (!bookmaker) return []
 
     const market = bookmaker.markets?.find((m) => m.key === 'outrights')
     if (!market?.outcomes?.length) return []
 
-    // Take top 8 by lowest odds (favourites) and de-vig
     const sorted = [...market.outcomes].sort((a, b) => a.price - b.price).slice(0, 8)
     const probs = devig(sorted.map((o) => o.price))
 
-    return [{
-      name: event.sport_title || competitionKey.toUpperCase(),
-      outcomes: sorted.map((o) => o.name),
-      probabilities: probs,
-      kickoff: event.commence_time,
-      externalId: event.id,
-      format: 'outright',
-    }]
+    return [{ name: event.sport_title || competitionKey.toUpperCase(), outcomes: sorted.map((o) => o.name), probabilities: probs, kickoff: event.commence_time, externalId: event.id, format: 'outright' }]
   } catch (err) {
     console.error('Error fetching outright odds:', err)
     return []
   }
 }
 
-// ── Process a single h2h fixture from the API ─────────────────────────────────
 function processH2HFixture(fixture, competitionKey) {
   try {
-    const preferredBooks = ['bet365', 'betfair', 'williamhill', 'paddypower', 'ladbrokes']
-    const bookmaker = fixture.bookmakers?.find(
-      (b) => preferredBooks.includes(b.key)
-    ) || fixture.bookmakers?.[0]
-
+    const preferredBooks = ['bet365','betfair','williamhill','paddypower','ladbrokes']
+    const bookmaker = fixture.bookmakers?.find((b) => preferredBooks.includes(b.key)) || fixture.bookmakers?.[0]
     if (!bookmaker) return null
 
     const market = bookmaker.markets?.find((m) => m.key === 'h2h')
     if (!market) return null
 
-    const outcomes = market.outcomes
-    const isFootball = ['epl', 'laliga', 'fifa_wc'].includes(competitionKey)
-
-    const home = outcomes.find((o) => o.name === fixture.home_team)
-    const away = outcomes.find((o) => o.name === fixture.away_team)
-    const draw = outcomes.find((o) => o.name === 'Draw')
-
+    const home = market.outcomes.find((o) => o.name === fixture.home_team)
+    const away = market.outcomes.find((o) => o.name === fixture.away_team)
+    const draw = market.outcomes.find((o) => o.name === 'Draw')
     if (!home || !away) return null
 
-    if (isFootball && draw) {
-      // For World Cup knockout stage, no draw is possible (game goes to ET/pens)
-      // Detect knockout: competition is World Cup AND draw odds are very high (>3.5 = unlikely draw)
-      // OR just always strip draw for World Cup when it's in knockout format
-      const isWorldCup = competitionKey === 'fifa_wc'
-      if (!isWorldCup) {
-        // Group stage football — three-way market
-        const probs = devig([home.price, draw.price, away.price])
-        return {
-          name: `${fixture.home_team} vs ${fixture.away_team}`,
-          homeTeam: fixture.home_team,
-          awayTeam: fixture.away_team,
-          kickoff: fixture.commence_time,
-          format: 'three_way',
-          outcomes: [fixture.home_team, 'Draw', fixture.away_team],
-          probabilities: probs,
-          externalId: fixture.id,
-          bookmaker: bookmaker.key,
-        }
-      }
+    const isWorldCup = competitionKey === 'fifa_wc'
+    if (!isWorldCup && draw) {
+      const probs = devig([home.price, draw.price, away.price])
+      return { name: `${fixture.home_team} vs ${fixture.away_team}`, homeTeam: fixture.home_team, awayTeam: fixture.away_team, kickoff: fixture.commence_time, format: 'three_way', outcomes: [fixture.home_team, 'Draw', fixture.away_team], probabilities: probs, externalId: fixture.id, bookmaker: bookmaker.key }
     }
 
-    // Two-way: knockout stage (World Cup) or no-draw competition (NFL, tennis)
     const probs = devig([home.price, away.price])
-    return {
-      name: `${fixture.home_team} vs ${fixture.away_team}`,
-      homeTeam: fixture.home_team,
-      awayTeam: fixture.away_team,
-      kickoff: fixture.commence_time,
-      format: 'two_way',
-      outcomes: [fixture.home_team, fixture.away_team],
-      probabilities: probs,
-      externalId: fixture.id,
-      bookmaker: bookmaker.key,
-    }
+    return { name: `${fixture.home_team} vs ${fixture.away_team}`, homeTeam: fixture.home_team, awayTeam: fixture.away_team, kickoff: fixture.commence_time, format: 'two_way', outcomes: [fixture.home_team, fixture.away_team], probabilities: probs, externalId: fixture.id, bookmaker: bookmaker.key }
   } catch (err) {
     console.error('Error processing fixture:', err)
     return null
   }
 }
 
-// ── Fetch results for a completed round ──────────────────────────────────────
 export async function fetchResults(competitionKey, eventIds = []) {
   const sportKey = SPORT_KEY_MAP[competitionKey]
   if (!sportKey || OUTRIGHT_COMPS.has(competitionKey)) return []
-
   try {
     const url = new URL(`${BASE_URL}/sports/${sportKey}/scores`)
     url.searchParams.set('apiKey', API_KEY)
     url.searchParams.set('daysFrom', '3')
-
     const response = await fetch(url.toString())
     if (!response.ok) return []
-
     const data = await response.json()
-    return data
-      .filter((r) => r.completed && (eventIds.length === 0 || eventIds.includes(r.id)))
-      .map((r) => {
-        const h = parseInt(r.scores?.find((s) => s.name === r.home_team)?.score)
-        const a = parseInt(r.scores?.find((s) => s.name === r.away_team)?.score)
-        return {
-          externalId: r.id,
-          homeTeam: r.home_team,
-          awayTeam: r.away_team,
-          completed: r.completed,
-          winner: isNaN(h) || isNaN(a) ? null : h > a ? r.home_team : a > h ? r.away_team : 'Draw',
-        }
-      })
+    return data.filter((r) => r.completed && (eventIds.length === 0 || eventIds.includes(r.id))).map((r) => {
+      const h = parseInt(r.scores?.find((s) => s.name === r.home_team)?.score)
+      const a = parseInt(r.scores?.find((s) => s.name === r.away_team)?.score)
+      return { externalId: r.id, homeTeam: r.home_team, awayTeam: r.away_team, completed: r.completed, winner: isNaN(h) || isNaN(a) ? null : h > a ? r.home_team : a > h ? r.away_team : 'Draw' }
+    })
   } catch (err) {
     console.error('Error fetching results:', err)
-    return []
-  }
-}
-
-// ── List available sports (useful for debugging) ──────────────────────────────
-export async function listAvailableSports() {
-  try {
-    const url = new URL(`${BASE_URL}/sports`)
-    url.searchParams.set('apiKey', API_KEY)
-    const response = await fetch(url.toString())
-    if (!response.ok) return []
-    return await response.json()
-  } catch {
     return []
   }
 }
