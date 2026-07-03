@@ -675,8 +675,37 @@ export default function PlatformMock() {
 
       await persistBalance(session.user.id, activeCompKey, myEndingBalance);
 
-      const roundId = dbRoundState[activeCompKey]?.roundId;
-      const dbOutcomeMap = dbRoundState[activeCompKey]?.dbOutcomeMap || {};
+      // Get roundId — from memory state if available, otherwise fetch from DB
+      let roundId = dbRoundState[activeCompKey]?.roundId;
+      let dbOutcomeMap = dbRoundState[activeCompKey]?.dbOutcomeMap || {};
+
+      if (!roundId) {
+        // Not in memory — fetch from DB using current round number
+        const currentCdForRound = compData[activeCompKey];
+        const { data: roundRow } = await supabase
+          .from('betting_rounds')
+          .select('id')
+          .eq('competition_id', (await supabase.from('competitions').select('id').eq('key', activeCompKey).maybeSingle()).data?.id)
+          .eq('round_number', currentCdForRound.round)
+          .maybeSingle();
+        roundId = roundRow?.id;
+
+        // Also rebuild outcome map from DB
+        if (roundId) {
+          const { data: markets } = await supabase
+            .from('markets')
+            .select('id, market_outcomes(id, sort_order)')
+            .eq('round_id', roundId);
+          if (markets?.length) {
+            const sorted = [...markets].sort((a, b) => a.id - b.id);
+            sorted.forEach((m, mi) => {
+              m.market_outcomes?.sort((a, b) => a.sort_order - b.sort_order).forEach((o) => {
+                dbOutcomeMap[`local_${mi}_${o.sort_order}`] = o.id;
+              });
+            });
+          }
+        }
+      }
 
       if (roundId && resolvedMarkets.length) {
         // 1. Mark winning outcomes in market_outcomes table
@@ -700,20 +729,40 @@ export default function PlatformMock() {
           .eq('id', roundId);
 
         // 3. Settle individual bets with payouts
-        const currentCd = compData[activeCompKey];
-        const settledBets = currentCd.bets.map((bet) => {
-          const market = resolvedMarkets.find((m) => m.id === bet.marketId);
-          if (!market) return null;
-          const won = !market.postponed && bet.outcome === market.result;
-          const refunded = market.postponed;
-          return {
-            dbBetId: bet.dbBetId,
-            payout: won ? bet.shares : refunded ? bet.stake : 0,
-          };
-        }).filter((b) => b?.dbBetId);
+        const { data: unsettledBets } = await supabase
+          .from('bets')
+          .select('id, market_outcome_id, stake, shares')
+          .eq('round_id', roundId)
+          .eq('user_id', session.user.id)
+          .eq('settled', false);
 
-        if (settledBets.length) {
-          await settleBetsInDB(session.user.id, roundId, settledBets);
+        if (unsettledBets?.length) {
+          // Build a lookup: outcomeDbId → { won, postponed, shares, stake }
+          const outcomeResults = {};
+          resolvedMarkets.forEach((m, mi) => {
+            m.outcomes.forEach((_, oi) => {
+              const key = `local_${mi}_${oi}`;
+              const outcomeId = dbOutcomeMap[key];
+              if (outcomeId) {
+                outcomeResults[outcomeId] = {
+                  won: !m.postponed && m.result === oi,
+                  postponed: m.postponed,
+                };
+              }
+            });
+          });
+
+          const updates = unsettledBets.map((bet) => {
+            const result = outcomeResults[bet.market_outcome_id];
+            const payout = result?.won ? bet.shares
+              : result?.postponed ? bet.stake
+              : 0;
+            return { id: bet.id, settled: true, payout };
+          });
+
+          if (updates.length) {
+            await supabase.from('bets').upsert(updates);
+          }
         }
       }
     } catch (err) {
