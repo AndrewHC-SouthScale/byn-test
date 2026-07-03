@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "./supabase.js";
 import { ensureProfile, isDisplayNameTaken } from "./profileService.js";
-import { loadUserState, persistBalance, applyRoundTopup, resetSeasonBalances } from "./persistenceManager.js";
+import { loadUserState, persistBalance, applyRoundTopup, resetSeasonBalances, initRoundMarketsInDB, saveBetToDB, settleBetsInDB } from "./persistenceManager.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -371,6 +371,9 @@ export default function PlatformMock() {
   const AD_BOOST_PER_VIEW = 50;
   const AD_BOOST_MAX = 1000;
   const [adBoostTotal, setAdBoostTotal] = useState(0);
+  // Tracks Supabase round IDs and outcome ID maps per competition
+  // { [compKey]: { roundId, dbOutcomeMap } }
+  const [dbRoundState, setDbRoundState] = useState({});
   const [adBoostCompKey, setAdBoostCompKey] = useState("epl");
   const [adWatching, setAdWatching] = useState(false);
 
@@ -413,17 +416,67 @@ export default function PlatformMock() {
   const minRequired = startOfRound * MIN_COMMIT_FRACTION;
   const meetsMin = committed >= minRequired;
 
-  function placeBet() {
+  async function placeBet() {
     const stake = Math.min(stakeInput, remaining);
     if (stake <= 0) return;
+
+    let priceBefore = 0;
+    let delta = 0;
+    let localMarketId = 0;
+
+    // Update local state first for instant UI response
     updateComp(activeCompKey, (s) => {
       const markets = s.markets.map((m) => ({ ...m, q: [...m.q] }));
       const m = markets[selMarket];
-      const priceBefore = prices(m.q, m.b)[selOutcome];
-      const delta = sharesForBudget(m.q, m.b, selOutcome, stake);
+      priceBefore = prices(m.q, m.b)[selOutcome];
+      delta = sharesForBudget(m.q, m.b, selOutcome, stake);
       m.q[selOutcome] += delta;
+      localMarketId = m.id;
       return { ...s, markets, bets: [...s.bets, { marketId: m.id, outcome: selOutcome, stake, shares: delta, priceAtExecution: priceBefore }] };
     });
+
+    // Persist to Supabase in background
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const cd = compData[activeCompKey];
+      let roundId = dbRoundState[activeCompKey]?.roundId;
+      let dbOutcomeMap = dbRoundState[activeCompKey]?.dbOutcomeMap || {};
+
+      // Lazily initialise round and markets in DB on first bet
+      if (!roundId) {
+        const result = await initRoundMarketsInDB(
+          activeCompKey,
+          cd.round,
+          1,
+          cd.markets
+        );
+        roundId = result.roundId;
+        dbOutcomeMap = result.dbOutcomeMap;
+        setDbRoundState((prev) => ({
+          ...prev,
+          [activeCompKey]: { roundId, dbOutcomeMap },
+        }));
+      }
+
+      // Look up the Supabase outcome ID
+      const outcomeKey = `local_${selMarket}_${selOutcome}`;
+      const outcomeDbId = dbOutcomeMap[outcomeKey];
+
+      if (outcomeDbId && roundId) {
+        await saveBetToDB(session.user.id, {
+          roundId,
+          competitionKey: activeCompKey,
+          outcomeDbId,
+          stake,
+          shares: delta,
+          priceAtExecution: priceBefore,
+        });
+      }
+    } catch (err) {
+      console.error('Error saving bet to DB:', err);
+    }
   }
 
   function applyReferralBonus(compKey) {
@@ -500,12 +553,30 @@ export default function PlatformMock() {
       return { ...s, markets: resolved, balance: myEnding, botBalances: newBotBalances, season: [...s.season, ...withRank], stage: "settled" };
     });
 
-    // Persist the updated balance to Supabase
+    // Persist balance and settle bets in Supabase
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) await persistBalance(session.user.id, activeCompKey, myEndingBalance);
+      if (session) {
+        await persistBalance(session.user.id, activeCompKey, myEndingBalance);
+
+        // Mark bets as settled with payouts
+        const roundId = dbRoundState[activeCompKey]?.roundId;
+        if (roundId) {
+          const cd = compData[activeCompKey];
+          const settledBets = cd.bets.map((bet) => {
+            const market = cd.markets.find((m) => m.id === bet.marketId);
+            const won = !market?.postponed && bet.outcome === market?.result;
+            const refunded = market?.postponed;
+            return {
+              dbBetId: bet.dbBetId,
+              payout: won ? bet.shares : refunded ? bet.stake : 0,
+            };
+          }).filter((b) => b.dbBetId);
+          if (settledBets.length) await settleBetsInDB(session.user.id, roundId, settledBets);
+        }
+      }
     } catch (err) {
-      console.error('Error persisting balance after settlement:', err);
+      console.error('Error persisting after settlement:', err);
     }
   }
 
@@ -530,6 +601,8 @@ export default function PlatformMock() {
     setAdBoostTotal(0);
     setSelMarket(0);
     setSelOutcome(0);
+    // Clear DB round state so it reinitialises on next bet
+    setDbRoundState((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
 
     // If season is resetting, zero out the wallet in Supabase too
     if (newSeasonStarting) {
