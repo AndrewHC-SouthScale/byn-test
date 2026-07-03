@@ -279,23 +279,28 @@ export default function PlatformMock() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
-        const profile = await ensureProfile(session.user);
-        if (profile) {
+        // Check if profile exists — new users go to setup, returning users go to app
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id, display_name, country')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (existing) {
+          if (existing.display_name) setUserName(existing.display_name);
+          if (existing.country) setUserCountry(existing.country);
           const persisted = await loadUserState(session.user.id, COMPETITIONS);
           if (persisted && Object.keys(persisted).length > 0) {
             setCompData((prev) => {
               const updated = { ...prev };
               Object.entries(persisted).forEach(([key, state]) => {
-                if (updated[key]) {
-                  updated[key] = { ...updated[key], balance: state.balance };
-                }
+                if (updated[key]) updated[key] = { ...updated[key], balance: state.balance };
               });
               return updated;
             });
           }
-          setScreen("app"); // existing session → go straight to app
+          setScreen("app");
         } else {
-          setScreen("app"); // profile issue but still let them in
+          setScreen("setup"); // new user — collect name, country, age
         }
       }
       setAuthLoading(false);
@@ -303,8 +308,19 @@ export default function PlatformMock() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
-        await ensureProfile(session.user);
-        setScreen("app"); // OAuth callback → go straight to app
+        // Check profile exists
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id, display_name, country')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (existing) {
+          if (existing.display_name) setUserName(existing.display_name);
+          if (existing.country) setUserCountry(existing.country);
+          setScreen("app");
+        } else {
+          setScreen("setup");
+        }
       } else {
         setScreen("login");
       }
@@ -323,6 +339,24 @@ export default function PlatformMock() {
 
   async function signOut() {
     await supabase.auth.signOut();
+  }
+
+  async function completeSetup() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await ensureProfile(session.user, userName);
+    if (referralInput.length >= 6) applyReferralBonus(referralBonusComp);
+    const persisted = await loadUserState(session.user.id, COMPETITIONS);
+    if (persisted && Object.keys(persisted).length > 0) {
+      setCompData((prev) => {
+        const updated = { ...prev };
+        Object.entries(persisted).forEach(([key, state]) => {
+          if (updated[key]) updated[key] = { ...updated[key], balance: state.balance };
+        });
+        return updated;
+      });
+    }
+    setScreen("app");
   }
   const [userName, setUserName] = useState("");
   const [nameError, setNameError] = useState("");
@@ -692,124 +726,102 @@ export default function PlatformMock() {
   if (screen === "login") {
     if (showLoginHowTo) {
       return (
-        <div style={shell}>
-          <style>{fontImports}</style>
-          <div style={{ maxWidth: 640, margin: "0 auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <svg viewBox="0 0 80 80" width="36" height="36" style={{ flexShrink: 0 }}>
-                  <rect x="0" y="0" width="80" height="80" rx="18" fill="#2FA86C"/>
-                  <polygon points="40,14 63,27 63,53 40,66 17,53 17,27" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
-                  <circle cx="40" cy="40" r="10" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
-                </svg>
-                <div className="sg" style={{ fontSize: 18, fontWeight: 700 }}>How to play</div>
-              </div>
-              <button onClick={() => setShowLoginHowTo(false)} className="sg" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #1c5f3f", background: "transparent", color: "#7FBFA0", fontSize: 12, fontWeight: 600 }}>
-                Back to sign up
-              </button>
+        <div style={shell}><style>{fontImports}</style>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <svg viewBox="0 0 80 80" width="36" height="36" style={{ flexShrink: 0 }}><rect x="0" y="0" width="80" height="80" rx="18" fill="#2FA86C"/><polygon points="40,14 63,27 63,53 40,66 17,53 17,27" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/><circle cx="40" cy="40" r="10" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/></svg>
+              <div className="sg" style={{ fontSize: 18, fontWeight: 700 }}>How to play</div>
             </div>
-            <HowToPlayScreen />
-            <button
-              onClick={() => setShowLoginHowTo(false)}
-              className="sg"
-              style={{ width: "100%", marginTop: 4, padding: 12, borderRadius: 10, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 14 }}
-            >
-              Got it — back to sign up
-            </button>
+            <button onClick={() => setShowLoginHowTo(false)} className="sg" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #1c5f3f", background: "transparent", color: "#7FBFA0", fontSize: 12, fontWeight: 600 }}>Back to sign in</button>
           </div>
-        </div>
+          <HowToPlayScreen />
+          <button onClick={() => setShowLoginHowTo(false)} className="sg" style={{ width: "100%", marginTop: 4, padding: 12, borderRadius: 10, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 14 }}>Got it — back to sign in</button>
+        </div></div>
       );
     }
     return (
-      <div style={shell}>
-        <style>{fontImports}</style>
-        <div style={{ maxWidth: 380, margin: "120px auto 0", textAlign: "center" }}>
-          <svg viewBox="0 0 300 110" width="260" style={{ marginBottom: 16, display: "block", margin: "0 auto 16px" }}>
-            <polygon points="55,8 91,29 91,71 55,92 19,71 19,29" fill="#0A1F1A" stroke="#2FA86C" strokeWidth="1.5"/>
-            <circle cx="55" cy="50" r="16" fill="#2FA86C" opacity="0.15"/>
-            <circle cx="55" cy="50" r="16" fill="none" stroke="#2FA86C" strokeWidth="1.5"/>
-            <line x1="39" y1="50" x2="71" y2="50" stroke="#2FA86C" strokeWidth="0.5" opacity="0.4"/>
-            <line x1="55" y1="34" x2="55" y2="66" stroke="#2FA86C" strokeWidth="0.5" opacity="0.4"/>
-            <text x="113" y="42" fontFamily="'Space Grotesk', system-ui, sans-serif" fontWeight="700" fontSize="38" fill="#F4F7F2" letterSpacing="2">BYN</text>
-            <line x1="113" y1="50" x2="203" y2="50" stroke="#2FA86C" strokeWidth="1"/>
-            <text x="113" y="66" fontFamily="system-ui, sans-serif" fontWeight="400" fontSize="10" fill="#7FBFA0" letterSpacing="2">BET YOUR NUTS</text>
-          </svg>
-          <p style={{ color: "#9DBFAF", fontSize: 13, marginBottom: 16 }}>No real money — just bragging rights.</p>
-          <button
-            onClick={() => setShowLoginHowTo(true)}
-            className="sg"
-            style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid #2f6b4d", background: "#16352A", color: "#7FBFA0", fontWeight: 600, fontSize: 13, marginBottom: 20 }}
-          >
-            How does this work? →
-          </button>
-          <input
-            placeholder="Pick a display name"
-            value={userName}
-            onChange={(e) => { setUserName(e.target.value); setNameEdited(true); setNameError(containsProfanity(e.target.value) ? "That name isn't allowed. Try something else." : ""); setNameTaken(false); }}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${nameError || nameTaken ? "#C75146" : userName.trim() && !nameChecking && !nameTaken ? "#2FA86C" : "#1c5f3f"}`, background: "#0F2920", color: "#F4F7F2", marginBottom: 6, fontSize: 14 }}
-          />
-          {nameError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>{nameError}</div>}
-          {!nameError && userName.trim() && nameChecking && <div style={{ fontSize: 11, color: "#7FBFA0", marginBottom: 8, textAlign: "left" }}>Checking availability...</div>}
-          {!nameError && userName.trim() && !nameChecking && nameTaken && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>That name is already taken — please choose another.</div>}
-          {!nameError && userName.trim() && !nameChecking && !nameTaken && <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 8, textAlign: "left" }}>✓ Name available</div>}
-          <select
-            value={userCountry}
-            onChange={(e) => setUserCountry(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#0F2920", color: "#F4F7F2", marginBottom: 14, fontSize: 14 }}
-          >
-            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, textAlign: "left", fontSize: 11, color: "#9DBFAF", cursor: "pointer" }}>
-            <input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, accentColor: "#2FA86C" }} />
-            <span>I confirm I am 17 years of age or older. BYN is play-money only with no real-money wagering, but is still restricted by app store policy for simulated gambling content.</span>
-          </label>
+      <div style={shell}><style>{fontImports}</style>
+      <div style={{ maxWidth: 380, margin: "120px auto 0", textAlign: "center" }}>
+        <svg viewBox="0 0 300 110" width="260" style={{ marginBottom: 16, display: "block", margin: "0 auto 16px" }}>
+          <polygon points="55,8 91,29 91,71 55,92 19,71 19,29" fill="#0A1F1A" stroke="#2FA86C" strokeWidth="1.5"/>
+          <circle cx="55" cy="50" r="16" fill="#2FA86C" opacity="0.15"/>
+          <circle cx="55" cy="50" r="16" fill="none" stroke="#2FA86C" strokeWidth="1.5"/>
+          <line x1="39" y1="50" x2="71" y2="50" stroke="#2FA86C" strokeWidth="0.5" opacity="0.4"/>
+          <line x1="55" y1="34" x2="55" y2="66" stroke="#2FA86C" strokeWidth="0.5" opacity="0.4"/>
+          <text x="113" y="42" fontFamily="'Space Grotesk', system-ui, sans-serif" fontWeight="700" fontSize="38" fill="#F4F7F2" letterSpacing="2">BYN</text>
+          <line x1="113" y1="50" x2="203" y2="50" stroke="#2FA86C" strokeWidth="1"/>
+          <text x="113" y="66" fontFamily="system-ui, sans-serif" fontWeight="400" fontSize="10" fill="#7FBFA0" letterSpacing="2">BET YOUR NUTS</text>
+        </svg>
+        <p style={{ color: "#9DBFAF", fontSize: 13, marginBottom: 24 }}>No real money — just bragging rights.</p>
+        {authError && <div style={{ fontSize: 12, color: "#E0998F", marginBottom: 12 }}>{authError}</div>}
+        <button onClick={signInWithGoogle} className="sg" style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+          <LogIn size={16} /> Continue with Google
+        </button>
+        <button disabled className="sg" style={{ width: "100%", padding: "13px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: "#5E8775", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+           Continue with Apple (coming soon)
+        </button>
+        <button onClick={() => setShowLoginHowTo(true)} className="sg" style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid #2f6b4d", background: "#16352A", color: "#7FBFA0", fontWeight: 600, fontSize: 13 }}>
+          How does this work? →
+        </button>
+      </div></div>
+    );
+  }
 
-          <div style={{ background: "#0F2920", border: "1px solid #1c5f3f", borderRadius: 10, padding: 12, marginBottom: 16, textAlign: "left" }}>
-            <div className="sg" style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Got a referral code? <span style={{ color: "#7FBFA0", fontWeight: 400 }}>(optional)</span></div>
-            <input
-              placeholder="Enter code e.g. A1B2C3"
-              value={referralInput}
-              onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", marginBottom: 8, fontSize: 13 }}
-            />
-            {referralInput.length >= 6 && (
-              <>
-                <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 6 }}>✓ Code accepted — apply your 500 nut welcome bonus to:</div>
-                <select
-                  value={referralBonusComp}
-                  onChange={(e) => setReferralBonusComp(e.target.value)}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13 }}
-                >
-                  {COMPETITIONS.filter((c) => c.active).map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
-                </select>
-              </>
-            )}
-          </div>
+  if (screen === "setup") {
+    return (
+      <div style={shell}><style>{fontImports}</style>
+      <div style={{ maxWidth: 380, margin: "80px auto 0", textAlign: "center" }}>
+        <svg viewBox="0 0 80 80" width="48" height="48" style={{ marginBottom: 16, display: "block", margin: "0 auto 16px" }}>
+          <rect x="0" y="0" width="80" height="80" rx="18" fill="#2FA86C"/>
+          <polygon points="40,14 63,27 63,53 40,66 17,53 17,27" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+          <circle cx="40" cy="40" r="10" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+        </svg>
+        <div className="sg" style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Welcome to BYN</div>
+        <p style={{ color: "#9DBFAF", fontSize: 13, marginBottom: 24 }}>Set up your profile to start playing.</p>
 
-          {authError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8 }}>{authError}</div>}
-          <button
-            disabled={!userName.trim() || !!nameError || nameTaken || nameChecking || !ageConfirmed}
-            onClick={async () => {
-              if (referralInput.length >= 6) applyReferralBonus(referralBonusComp);
-              await signInWithGoogle();
-            }}
-            className="sg"
-            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && !nameTaken && !nameChecking && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}
-          >
-            <LogIn size={16} /> Continue with Google
-          </button>
-          <button
-            disabled={!userName.trim() || !!nameError || nameTaken || nameChecking || !ageConfirmed}
-            onClick={() => { if (referralInput.length >= 6) applyReferralBonus(referralBonusComp); setScreen("app"); }}
-            className="sg"
-            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: userName.trim() && !nameError && !nameTaken && !nameChecking && ageConfirmed ? "#F4F7F2" : "#5E8775", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-          >
-             Continue with Apple (coming soon)
-          </button>
-          <p style={{ color: "#5E8775", fontSize: 10, marginTop: 6 }}>Apple Sign In will be added before App Store submission.</p>
-          <p style={{ color: "#5E8775", fontSize: 11, marginTop: 14 }}>Real build uses Google OAuth via Supabase Auth.</p>
+        <input
+          placeholder="Pick a display name"
+          value={userName}
+          onChange={(e) => { setUserName(e.target.value); setNameEdited(true); setNameError(containsProfanity(e.target.value) ? "That name isn't allowed. Try something else." : ""); setNameTaken(false); }}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${nameError || nameTaken ? "#C75146" : nameEdited && userName.trim() && !nameChecking && !nameTaken ? "#2FA86C" : "#1c5f3f"}`, background: "#0F2920", color: "#F4F7F2", marginBottom: 6, fontSize: 14, textAlign: "left" }}
+        />
+        {nameError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>{nameError}</div>}
+        {!nameError && nameEdited && userName.trim() && nameChecking && <div style={{ fontSize: 11, color: "#7FBFA0", marginBottom: 8, textAlign: "left" }}>Checking availability...</div>}
+        {!nameError && nameEdited && userName.trim() && !nameChecking && nameTaken && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>That name is already taken — please choose another.</div>}
+        {!nameError && nameEdited && userName.trim() && !nameChecking && !nameTaken && <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 8, textAlign: "left" }}>✓ Name available</div>}
+
+        <select value={userCountry} onChange={(e) => setUserCountry(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#0F2920", color: "#F4F7F2", marginBottom: 14, fontSize: 14 }}>
+          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, textAlign: "left", fontSize: 11, color: "#9DBFAF", cursor: "pointer" }}>
+          <input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, accentColor: "#2FA86C" }} />
+          <span>I confirm I am 17 years of age or older. BYN is play-money only — no real-money wagering.</span>
+        </label>
+
+        <div style={{ background: "#0F2920", border: "1px solid #1c5f3f", borderRadius: 10, padding: 12, marginBottom: 16, textAlign: "left" }}>
+          <div className="sg" style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Got a referral code? <span style={{ color: "#7FBFA0", fontWeight: 400 }}>(optional)</span></div>
+          <input placeholder="Enter code e.g. A1B2C3" value={referralInput} onChange={(e) => setReferralInput(e.target.value.toUpperCase())} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", marginBottom: 8, fontSize: 13 }}/>
+          {referralInput.length >= 6 && (
+            <>
+              <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 6 }}>✓ Code accepted — apply your 500 nut welcome bonus to:</div>
+              <select value={referralBonusComp} onChange={(e) => setReferralBonusComp(e.target.value)} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13 }}>
+                {COMPETITIONS.filter((c) => c.active).map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+              </select>
+            </>
+          )}
         </div>
-      </div>
+
+        <button
+          disabled={!userName.trim() || !!nameError || nameTaken || nameChecking || !ageConfirmed}
+          onClick={completeSetup}
+          className="sg"
+          style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && !nameTaken && !nameChecking && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 15 }}
+        >
+          Start playing →
+        </button>
+      </div></div>
     );
   }
 
