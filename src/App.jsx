@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "./supabase.js";
 import { ensureProfile, isDisplayNameTaken } from "./profileService.js";
 import { loadUserState, persistBalance, applyRoundTopup, resetSeasonBalances, initRoundMarketsInDB, saveBetToDB, settleBetsInDB } from "./persistenceManager.js";
+import { fetchUpcomingFixtures } from "./oddsService.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -191,12 +192,25 @@ function newRoundMarkets(comp, roundNum) {
   const midLabel = comp.format === "three_way" ? comp.midLabel : null;
   return comp.teamPool.map(([home, away, seedProbs], i) => {
     const outcomes = midLabel ? [home, midLabel, away] : [home, away];
-    const probs = midLabel ? seedProbs : [seedProbs[0], seedProbs[2]]; // drop draw prob for two-way markets
-    // re-normalise two-way probs so they sum to 1
+    const probs = midLabel ? seedProbs : [seedProbs[0], seedProbs[2]];
     const total = probs.reduce((a, p) => a + p, 0);
     const normProbs = probs.map((p) => p / total);
     return { id: i, name: `${home} vs ${away}`, outcomes, q: probsToQ(normProbs, comp.baseLiquidity), b: comp.baseLiquidity };
   });
+}
+
+// Convert live fixtures from The Odds API into BYN market format
+function liveFixturesToMarkets(fixtures, comp) {
+  if (!fixtures?.length) return null;
+  return fixtures.slice(0, 10).map((f, i) => ({
+    id: i,
+    name: f.name,
+    outcomes: f.outcomes,
+    q: probsToQ(f.probabilities, comp.baseLiquidity),
+    b: comp.baseLiquidity,
+    kickoff: f.kickoff,
+    externalId: f.externalId,
+  }));
 }
 
 function allTeamsFor(comp) {
@@ -328,6 +342,11 @@ export default function PlatformMock() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Load live fixtures for default competition on mount
+  useEffect(() => {
+    loadLiveFixtures("epl");
+  }, []);
+
   async function signInWithGoogle() {
     setAuthError("");
     const { error } = await supabase.auth.signInWithOAuth({
@@ -411,6 +430,28 @@ export default function PlatformMock() {
   // Tracks Supabase round IDs and outcome ID maps per competition
   // { [compKey]: { roundId, dbOutcomeMap } }
   const [dbRoundState, setDbRoundState] = useState({});
+
+  // Live fixtures loaded from The Odds API
+  // { [compKey]: [{ name, outcomes, probabilities, kickoff, externalId }] }
+  const [liveFixtures, setLiveFixtures] = useState({});
+  const [fixturesLoading, setFixturesLoading] = useState(false);
+
+  // Load live fixtures for the active competition
+  async function loadLiveFixtures(compKey) {
+    const comp = COMPETITIONS.find((c) => c.key === compKey);
+    if (!comp || comp.format === 'outright') return; // outright markets (F1 etc) handled separately
+    setFixturesLoading(true);
+    try {
+      const fixtures = await fetchUpcomingFixtures(compKey);
+      if (fixtures.length > 0) {
+        setLiveFixtures((prev) => ({ ...prev, [compKey]: fixtures }));
+      }
+    } catch (err) {
+      console.error('Error loading live fixtures:', err);
+    } finally {
+      setFixturesLoading(false);
+    }
+  }
   const [adBoostCompKey, setAdBoostCompKey] = useState("epl");
   const [adWatching, setAdWatching] = useState(false);
 
@@ -439,12 +480,14 @@ export default function PlatformMock() {
     setActiveCompKey(first.key);
     setSelMarket(0);
     setSelOutcome(0);
+    loadLiveFixtures(first.key);
   }
 
   function selectCompetition(key) {
     setActiveCompKey(key);
     setSelMarket(0);
     setSelOutcome(0);
+    loadLiveFixtures(key);
   }
 
   const startOfRound = cd.balance + WEEKLY_TOPUP;
@@ -452,6 +495,16 @@ export default function PlatformMock() {
   const remaining = startOfRound - committed;
   const minRequired = startOfRound * MIN_COMMIT_FRACTION;
   const meetsMin = committed >= minRequired;
+
+  // Use live fixtures from Odds API if available, otherwise fall back to mock data
+  const activeMarkets = useMemo(() => {
+    const live = liveFixtures[activeCompKey];
+    if (live?.length) {
+      const converted = liveFixturesToMarkets(live, comp);
+      if (converted?.length) return converted;
+    }
+    return cd.markets;
+  }, [liveFixtures, activeCompKey, cd.markets, comp]);
 
   async function placeBet() {
     const stake = Math.min(stakeInput, remaining);
@@ -1031,13 +1084,28 @@ export default function PlatformMock() {
 
                 {cd.stage === "betting" && (
                   <>
+                    {fixturesLoading && (
+                      <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#16352A", marginBottom: 8, fontSize: 11, color: "#7FBFA0" }}>
+                        <span>⏳</span><span>Loading live fixtures...</span>
+                      </div>
+                    )}
+                    {!fixturesLoading && liveFixtures[activeCompKey]?.length > 0 && (
+                      <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#0D2B1A", border: "1px solid #2f6b4d", marginBottom: 8, fontSize: 11, color: "#2FA86C" }}>
+                        <span>🟢</span><span>Live fixtures — odds seeded from real bookmaker data</span>
+                      </div>
+                    )}
+                    {!fixturesLoading && !liveFixtures[activeCompKey]?.length && (
+                      <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#16352A", marginBottom: 8, fontSize: 11, color: "#9DBFAF" }}>
+                        <span>📋</span><span>Demo fixtures — no upcoming matches found in the next 7 days</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", gap: 8, padding: 10, borderRadius: 8, background: "#16352A", marginBottom: 12, fontSize: 11, color: "#7FBFA0" }}>
                       <span>🔔</span>
                       <span>In the real app, you'd get a push notification 1 hour before lockout if you haven't met your minimum stake yet — not simulated here, just showing where it'd surface.</span>
                     </div>
                     <div style={{ ...card, marginTop: 0 }}>
                       <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Place a bet</div>
-                      {cd.markets.map((m, mi) => {
+                      {activeMarkets.map((m, mi) => {
                         const p = prices(m.q, m.b);
                         const wide = m.outcomes.length > 4;
                         return (
@@ -1073,7 +1141,7 @@ export default function PlatformMock() {
                         style={{ width: "100%", marginTop: 6 }}
                       />
                       <div style={{ textAlign: "center", fontSize: 13, marginBottom: 10 }}>
-                        <span className="mono" style={{ fontWeight: 700 }}>{Math.min(stakeInput, Math.round(remaining))}</span> nuts on <span style={{ color: "#2FA86C" }}>{cd.markets[selMarket]?.outcomes[selOutcome]}</span>
+                        <span className="mono" style={{ fontWeight: 700 }}>{Math.min(stakeInput, Math.round(remaining))}</span> nuts on <span style={{ color: "#2FA86C" }}>{activeMarkets[selMarket]?.outcomes[selOutcome]}</span>
                       </div>
                       <button
                         onClick={placeBet}
@@ -1085,7 +1153,7 @@ export default function PlatformMock() {
                       </button>
                     </div>
 
-                    {cd.bets.length > 0 && <BetList bets={cd.bets} markets={cd.markets} />}
+                    {cd.bets.length > 0 && <BetList bets={cd.bets} markets={activeMarkets} />}
 
                     <button onClick={advanceToLockout} className="sg" style={{ width: "100%", marginTop: 14, padding: 12, borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: "#9DBFAF", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                       <Lock size={14} /> Advance to lockout (1hr before first start) <ChevronRight size={14} />
