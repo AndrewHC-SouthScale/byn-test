@@ -526,9 +526,22 @@ export default function PlatformMock() {
     return cd.markets;
   }, [liveFixtures, activeCompKey, cd.markets, comp]);
 
+  // Reset selection when active markets change to avoid out-of-bounds crashes
+  useEffect(() => {
+    const safeMarket = Math.min(selMarket, Math.max(0, activeMarkets.length - 1));
+    const safeOutcome = Math.min(selOutcome, Math.max(0, (activeMarkets[safeMarket]?.outcomes?.length || 1) - 1));
+    if (safeMarket !== selMarket) setSelMarket(safeMarket);
+    if (safeOutcome !== selOutcome) setSelOutcome(safeOutcome);
+  }, [activeMarkets]);
+
   async function placeBet() {
     const stake = Math.min(stakeInput, remaining);
     if (stake <= 0) return;
+
+    // Bounds check — guard against stale selMarket/selOutcome after market changes
+    const safeMarket = Math.min(selMarket, activeMarkets.length - 1);
+    const safeOutcome = Math.min(selOutcome, (activeMarkets[safeMarket]?.outcomes?.length || 1) - 1);
+    if (safeMarket < 0 || safeOutcome < 0) return;
 
     let priceBefore = 0;
     let delta = 0;
@@ -537,12 +550,13 @@ export default function PlatformMock() {
     // Update local state first for instant UI response
     updateComp(activeCompKey, (s) => {
       const markets = s.markets.map((m) => ({ ...m, q: [...m.q] }));
-      const m = markets[selMarket];
-      priceBefore = prices(m.q, m.b)[selOutcome];
-      delta = sharesForBudget(m.q, m.b, selOutcome, stake);
-      m.q[selOutcome] += delta;
+      const m = markets[safeMarket];
+      if (!m) return s; // safety guard
+      priceBefore = prices(m.q, m.b)[safeOutcome];
+      delta = sharesForBudget(m.q, m.b, safeOutcome, stake);
+      m.q[safeOutcome] += delta;
       localMarketId = m.id;
-      return { ...s, markets, bets: [...s.bets, { marketId: m.id, outcome: selOutcome, stake, shares: delta, priceAtExecution: priceBefore }] };
+      return { ...s, markets, bets: [...s.bets, { marketId: m.id, outcome: safeOutcome, stake, shares: delta, priceAtExecution: priceBefore }] };
     });
 
     // Persist to Supabase in background
@@ -571,7 +585,7 @@ export default function PlatformMock() {
       }
 
       // Look up the Supabase outcome ID
-      const outcomeKey = `local_${selMarket}_${selOutcome}`;
+      const outcomeKey = `local_${safeMarket}_${safeOutcome}`;
       const outcomeDbId = dbOutcomeMap[outcomeKey];
 
 
