@@ -87,11 +87,13 @@ export async function initRoundMarketsInDB(compKey, roundNum, seasonNum, markets
     .eq('round_id', round.id)
 
   if (existing?.length) {
-    // Already initialised — rebuild the map
+    // Already initialised — rebuild the map using local market indices
+    // Sort by market ID (ascending = creation order) to align with local market array
+    const sorted = [...existing].sort((a, b) => a.id - b.id)
     const dbOutcomeMap = {}
-    existing.forEach((m) => {
-      m.market_outcomes?.forEach((o) => {
-        dbOutcomeMap[`${m.id}_${o.sort_order}`] = o.id
+    sorted.forEach((m, mi) => {
+      m.market_outcomes?.sort((a, b) => a.sort_order - b.sort_order).forEach((o) => {
+        dbOutcomeMap[`local_${mi}_${o.sort_order}`] = o.id
       })
     })
     return { roundId: round.id, dbOutcomeMap }
@@ -145,9 +147,9 @@ export async function saveBetToDB(userId, { roundId, competitionKey, outcomeDbId
     .from('competitions')
     .select('id')
     .eq('key', competitionKey)
-    .single()
+    .maybeSingle()
 
-  if (!comp) return null
+  if (!comp) { console.error('saveBetToDB: competition not found:', competitionKey); return null }
 
   const { data, error } = await supabase
     .from('bets')
