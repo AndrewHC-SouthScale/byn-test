@@ -154,33 +154,39 @@ function processH2HFixture(fixture, competitionKey) {
     if (!home || !away) return null
 
     if (isFootball && draw) {
-      // Three-way: home / draw / away
-      const probs = devig([home.price, draw.price, away.price])
-      return {
-        name: `${fixture.home_team} vs ${fixture.away_team}`,
-        homeTeam: fixture.home_team,
-        awayTeam: fixture.away_team,
-        kickoff: fixture.commence_time,
-        format: 'three_way',
-        outcomes: [fixture.home_team, 'Draw', fixture.away_team],
-        probabilities: probs,
-        externalId: fixture.id,
-        bookmaker: bookmaker.key,
+      // For World Cup knockout stage, no draw is possible (game goes to ET/pens)
+      // Detect knockout: competition is World Cup AND draw odds are very high (>3.5 = unlikely draw)
+      // OR just always strip draw for World Cup when it's in knockout format
+      const isWorldCup = competitionKey === 'fifa_wc'
+      if (!isWorldCup) {
+        // Group stage football — three-way market
+        const probs = devig([home.price, draw.price, away.price])
+        return {
+          name: `${fixture.home_team} vs ${fixture.away_team}`,
+          homeTeam: fixture.home_team,
+          awayTeam: fixture.away_team,
+          kickoff: fixture.commence_time,
+          format: 'three_way',
+          outcomes: [fixture.home_team, 'Draw', fixture.away_team],
+          probabilities: probs,
+          externalId: fixture.id,
+          bookmaker: bookmaker.key,
+        }
       }
-    } else {
-      // Two-way: home / away (no draw — knockout stages, NFL etc)
-      const probs = devig([home.price, away.price])
-      return {
-        name: `${fixture.home_team} vs ${fixture.away_team}`,
-        homeTeam: fixture.home_team,
-        awayTeam: fixture.away_team,
-        kickoff: fixture.commence_time,
-        format: 'two_way',
-        outcomes: [fixture.home_team, fixture.away_team],
-        probabilities: probs,
-        externalId: fixture.id,
-        bookmaker: bookmaker.key,
-      }
+    }
+
+    // Two-way: knockout stage (World Cup) or no-draw competition (NFL, tennis)
+    const probs = devig([home.price, away.price])
+    return {
+      name: `${fixture.home_team} vs ${fixture.away_team}`,
+      homeTeam: fixture.home_team,
+      awayTeam: fixture.away_team,
+      kickoff: fixture.commence_time,
+      format: 'two_way',
+      outcomes: [fixture.home_team, fixture.away_team],
+      probabilities: probs,
+      externalId: fixture.id,
+      bookmaker: bookmaker.key,
     }
   } catch (err) {
     console.error('Error processing fixture:', err)

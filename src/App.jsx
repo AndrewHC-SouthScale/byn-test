@@ -74,9 +74,9 @@ const TEAM_POOL_UCL = [
   ["Inter Milan", "Barcelona",     [0.35, 0.27, 0.38]],
 ];
 const TEAM_POOL_FIFA_WC = [
-  ["Brazil", "Argentina",  [0.40, 0.27, 0.33]],
-  ["France", "England",    [0.45, 0.26, 0.29]],
-  ["Germany", "Spain",     [0.36, 0.28, 0.36]],
+  ["Brazil", "Argentina",  [0.40, 0.00, 0.60]],
+  ["France", "England",    [0.55, 0.00, 0.45]],
+  ["Germany", "Spain",     [0.48, 0.00, 0.52]],
 ];
 const TEAM_POOL_EUROS = [
   ["England", "Germany",  [0.43, 0.26, 0.31]],
@@ -144,7 +144,7 @@ const COMPETITIONS = [
   { key: "epl",         category: "football",         name: "EPL",              cadenceLabel: "Gameweek",   format: "three_way",        teamPool: TEAM_POOL_EPL,         midLabel: "Draw", special: false, baseLiquidity: 400, active: true  },
   { key: "laliga",      category: "football",         name: "La Liga",          cadenceLabel: "Matchday",   format: "three_way",        teamPool: TEAM_POOL_LA_LIGA,     midLabel: "Draw", special: false, baseLiquidity: 380, active: true  },
   { key: "ucl",         category: "football",         name: "Champions League", cadenceLabel: "Matchweek",  format: "three_way",        teamPool: TEAM_POOL_UCL,         midLabel: "Draw", special: false, baseLiquidity: 380, active: false },
-  { key: "fifa_wc",     category: "football",         name: "World Cup",        cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_FIFA_WC,     midLabel: "Draw", special: false, baseLiquidity: 450, active: true  },
+  { key: "fifa_wc",     category: "football",         name: "World Cup",        cadenceLabel: "Round",      format: "three_way_no_draw", teamPool: TEAM_POOL_FIFA_WC,    special: false, baseLiquidity: 450, active: true  },
   { key: "euros",       category: "football",         name: "Euros",            cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_EUROS,       midLabel: "Draw", special: true,  baseLiquidity: 420, active: false },
   { key: "six_nations", category: "rugby",            name: "Six Nations",      cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_SIX_NATIONS, midLabel: "Draw", special: true,  baseLiquidity: 150, active: false },
   { key: "rugby_wc",    category: "rugby",            name: "Rugby World Cup",  cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_RUGBY_WC,    midLabel: "Draw", special: true,  baseLiquidity: 180, active: false },
