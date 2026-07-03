@@ -10,11 +10,14 @@ const SPORT_KEY_MAP = {
   laliga:  'soccer_spain_la_liga',
   nfl:     'americanfootball_nfl',
   fifa_wc: 'soccer_fifa_world_cup',
-  f1:      'motorsport_formula_one',
+  atp:     'tennis_atp_wimbledon',
+  wta:     'tennis_wta_wimbledon',
+  pga:     'golf_the_open_championship_winner',
+  // F1 not available on The Odds API — uses demo fixtures
 }
 
-// Which competitions use outright (race/tournament winner) markets vs h2h
-const OUTRIGHT_COMPS = new Set(['f1', 'motogp', 'nascar', 'pga'])
+// Which competitions use outright (tournament winner) markets vs h2h
+const OUTRIGHT_COMPS = new Set(['pga'])
 
 // ── De-vig: convert raw decimal odds to fair probabilities ────────────────────
 function devig(decimalOdds) {

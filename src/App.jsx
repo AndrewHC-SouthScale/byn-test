@@ -152,12 +152,12 @@ const COMPETITIONS = [
   { key: "nfl",         category: "american_football",name: "NFL",              cadenceLabel: "Week",       format: "three_way_no_draw",teamPool: TEAM_POOL_NFL,                           special: false, baseLiquidity: 380, active: true  },
   { key: "nba",         category: "basketball",       name: "NBA",              cadenceLabel: "Gameweek",   format: "three_way_no_draw",teamPool: TEAM_POOL_NBA,                           special: false, baseLiquidity: 350, active: false },
   { key: "ipl",         category: "cricket",          name: "IPL",              cadenceLabel: "Match day",  format: "three_way",        teamPool: TEAM_POOL_IPL,         midLabel: "Tie",  special: false, baseLiquidity: 150, active: false },
-  { key: "atp",         category: "tennis",           name: "ATP Tour",         cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_ATP,                           special: false, baseLiquidity: 250, active: false },
-  { key: "wta",         category: "tennis",           name: "WTA Tour",         cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_WTA,                           special: false, baseLiquidity: 220, active: false },
+  { key: "atp",         category: "tennis",           name: "ATP Wimbledon",   cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_ATP,                           special: false, baseLiquidity: 250, active: true  },
+  { key: "wta",         category: "tennis",           name: "WTA Wimbledon",   cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_WTA,                           special: false, baseLiquidity: 220, active: true  },
   { key: "f1",          category: "motorsport",       name: "F1",               cadenceLabel: "Race",       format: "outright",         field: DRIVER_FIELD, fieldProbs: DRIVER_PROBS,    roundNames: F1_ROUNDS,     special: false, baseLiquidity: 280, active: true  },
   { key: "motogp",      category: "motorsport",       name: "MotoGP",           cadenceLabel: "Race",       format: "outright",         field: MOTOGP_FIELD, fieldProbs: MOTOGP_PROBS,    roundNames: MOTOGP_ROUNDS, special: false, baseLiquidity: 220, active: false },
   { key: "nascar",      category: "motorsport",       name: "NASCAR",           cadenceLabel: "Race",       format: "outright",         field: NASCAR_FIELD, fieldProbs: NASCAR_PROBS,    roundNames: NASCAR_ROUNDS, special: false, baseLiquidity: 180, active: false },
-  { key: "pga",         category: "golf",             name: "PGA Tour",         cadenceLabel: "Tournament", format: "outright",         field: GOLFER_FIELD, fieldProbs: GOLFER_PROBS,    roundNames: PGA_ROUNDS,    special: false, baseLiquidity: 200, active: false },
+  { key: "pga",         category: "golf",             name: "The Open",         cadenceLabel: "Tournament", format: "outright",         field: GOLFER_FIELD, fieldProbs: GOLFER_PROBS,    roundNames: PGA_ROUNDS,    special: false, baseLiquidity: 200, active: true  },
 ];
 const MIN_COMMIT_FRACTION = 0.5;
 const WEEKLY_TOPUP = 1000;
@@ -358,11 +358,13 @@ export default function PlatformMock() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load live fixtures for default competitions on mount
+  // Load live fixtures for active competitions on mount
   useEffect(() => {
     loadLiveFixtures("epl");
-    loadLiveFixtures("f1");
     loadLiveFixtures("fifa_wc");
+    loadLiveFixtures("atp");
+    loadLiveFixtures("wta");
+    loadLiveFixtures("pga");
   }, []);
 
   async function signInWithGoogle() {
