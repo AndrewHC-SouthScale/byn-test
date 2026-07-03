@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "./supabase.js";
-import { ensureProfile } from "./profileService.js";
+import { ensureProfile, isDisplayNameTaken } from "./profileService.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -309,6 +309,20 @@ export default function PlatformMock() {
   }
   const [userName, setUserName] = useState("");
   const [nameError, setNameError] = useState("");
+  const [nameTaken, setNameTaken] = useState(false);
+  const [nameChecking, setNameChecking] = useState(false);
+
+  // Debounced uniqueness check — runs 600ms after user stops typing
+  useEffect(() => {
+    if (!userName.trim() || nameError) { setNameTaken(false); return; }
+    setNameChecking(true);
+    const timer = setTimeout(async () => {
+      const taken = await isDisplayNameTaken(userName.trim());
+      setNameTaken(taken);
+      setNameChecking(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [userName, nameError]);
   const [userCountry, setUserCountry] = useState(COUNTRIES[0]);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [userReferralCode] = useState(() => Math.random().toString(36).slice(2, 8).toUpperCase());
@@ -611,10 +625,13 @@ export default function PlatformMock() {
           <input
             placeholder="Pick a display name"
             value={userName}
-            onChange={(e) => { setUserName(e.target.value); setNameError(containsProfanity(e.target.value) ? "That name isn't allowed. Try something else." : ""); }}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${nameError ? "#C75146" : "#1c5f3f"}`, background: "#0F2920", color: "#F4F7F2", marginBottom: 6, fontSize: 14 }}
+            onChange={(e) => { setUserName(e.target.value); setNameError(containsProfanity(e.target.value) ? "That name isn't allowed. Try something else." : ""); setNameTaken(false); }}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${nameError || nameTaken ? "#C75146" : userName.trim() && !nameChecking && !nameTaken ? "#2FA86C" : "#1c5f3f"}`, background: "#0F2920", color: "#F4F7F2", marginBottom: 6, fontSize: 14 }}
           />
           {nameError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>{nameError}</div>}
+          {!nameError && userName.trim() && nameChecking && <div style={{ fontSize: 11, color: "#7FBFA0", marginBottom: 8, textAlign: "left" }}>Checking availability...</div>}
+          {!nameError && userName.trim() && !nameChecking && nameTaken && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8, textAlign: "left" }}>That name is already taken — please choose another.</div>}
+          {!nameError && userName.trim() && !nameChecking && !nameTaken && <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 8, textAlign: "left" }}>✓ Name available</div>}
           <select
             value={userCountry}
             onChange={(e) => setUserCountry(e.target.value)}
@@ -651,21 +668,21 @@ export default function PlatformMock() {
 
           {authError && <div style={{ fontSize: 11, color: "#E0998F", marginBottom: 8 }}>{authError}</div>}
           <button
-            disabled={!userName.trim() || !!nameError || !ageConfirmed}
+            disabled={!userName.trim() || !!nameError || nameTaken || nameChecking || !ageConfirmed}
             onClick={async () => {
               if (referralInput.length >= 6) applyReferralBonus(referralBonusComp);
               await signInWithGoogle();
             }}
             className="sg"
-            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: userName.trim() && !nameError && !nameTaken && !nameChecking && ageConfirmed ? "#2FA86C" : "#1c5f3f", color: "#0A1F1A", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}
           >
             <LogIn size={16} /> Continue with Google
           </button>
           <button
-            disabled={!userName.trim() || !!nameError || !ageConfirmed}
+            disabled={!userName.trim() || !!nameError || nameTaken || nameChecking || !ageConfirmed}
             onClick={() => { if (referralInput.length >= 6) applyReferralBonus(referralBonusComp); setScreen("app"); }}
             className="sg"
-            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: userName.trim() && !nameError && ageConfirmed ? "#F4F7F2" : "#5E8775", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #1c5f3f", background: "transparent", color: userName.trim() && !nameError && !nameTaken && !nameChecking && ageConfirmed ? "#F4F7F2" : "#5E8775", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
              Continue with Apple (coming soon)
           </button>
