@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 import { supabase } from "./supabase.js";
+import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
 function prices(q, b) {
@@ -55,6 +55,11 @@ const TEAM_POOL_EPL = [
   ["Arsenal", "Chelsea",     [0.52, 0.25, 0.23]],
   ["Liverpool", "Man City",  [0.38, 0.26, 0.36]],
   ["Spurs", "Man United",    [0.44, 0.27, 0.29]],
+];
+const TEAM_POOL_LA_LIGA = [
+  ["Real Madrid", "Barcelona",     [0.40, 0.25, 0.35]],
+  ["Atletico Madrid", "Sevilla",   [0.50, 0.26, 0.24]],
+  ["Villarreal", "Athletic Club",  [0.42, 0.27, 0.31]],
 ];
 const TEAM_POOL_UCL = [
   ["Real Madrid", "Bayern Munich", [0.42, 0.26, 0.32]],
@@ -111,47 +116,40 @@ const TEAM_POOL_IPL = [
   ["RCB", "Kolkata Knight Riders",          [0.45, 0.04, 0.51]],
   ["Gujarat Titans", "Rajasthan Royals",    [0.50, 0.04, 0.46]],
 ];
-
-// F1 and PGA: realistic outright probabilities for each field member
 const DRIVER_FIELD = ["Verstappen", "Norris", "Leclerc", "Hamilton", "Russell", "Piastri", "Sainz", "Alonso"];
-const DRIVER_PROBS  = [0.32, 0.22, 0.13, 0.10, 0.08, 0.07, 0.05, 0.03]; // sums to 1.00
+const DRIVER_PROBS  = [0.32, 0.22, 0.13, 0.10, 0.08, 0.07, 0.05, 0.03];
 const MOTOGP_FIELD = ["Bagnaia", "M.Marquez", "Martin", "Bastianini", "Di Giannantonio", "Binder", "Acosta", "Vinales"];
-const MOTOGP_PROBS  = [0.28, 0.25, 0.18, 0.10, 0.07, 0.05, 0.04, 0.03]; // sums to 1.00
+const MOTOGP_PROBS  = [0.28, 0.25, 0.18, 0.10, 0.07, 0.05, 0.04, 0.03];
 const NASCAR_FIELD = ["Hamlin", "Larson", "Elliott", "Byron", "Blaney", "Truex Jr", "Bell", "Keselowski"];
-const NASCAR_PROBS  = [0.18, 0.17, 0.15, 0.13, 0.12, 0.10, 0.08, 0.07]; // sums to 1.00
+const NASCAR_PROBS  = [0.18, 0.17, 0.15, 0.13, 0.12, 0.10, 0.08, 0.07];
 const GOLFER_FIELD = ["Scheffler", "McIlroy", "Rahm", "Schauffele", "Morikawa", "Hovland", "Spieth", "DeChambeau"];
-const GOLFER_PROBS  = [0.24, 0.18, 0.14, 0.12, 0.10, 0.09, 0.07, 0.06]; // sums to 1.00
-
-// Convert fair probabilities to LMSR q values: q_i = b * ln(p_i)
-// Prices only depend on relative differences between q values, so this is exact
-function probsToQ(probs, b) {
-  return probs.map((p) => b * Math.log(Math.max(p, 0.001)));
-}
-
+const GOLFER_PROBS  = [0.24, 0.18, 0.14, 0.12, 0.10, 0.09, 0.07, 0.06];
+function probsToQ(probs, b) { return probs.map((p) => b * Math.log(Math.max(p, 0.001))); }
 const F1_ROUNDS = ["Monaco GP", "Silverstone GP", "Monza GP", "Suzuka GP", "Las Vegas GP"];
 const MOTOGP_ROUNDS = ["Mugello MotoGP", "Catalunya MotoGP", "Silverstone MotoGP", "Misano MotoGP", "Valencia MotoGP"];
 const NASCAR_ROUNDS = ["Daytona 500", "Talladega", "Bristol", "Charlotte Motor Speedway", "Phoenix"];
 const PGA_ROUNDS = ["The Masters", "PGA Championship", "The Open", "US Open", "The Players"];
 
+// active: true = visible in UI. Set false to hide without deleting — re-enable when ready.
 const COMPETITIONS = [
-  { key: "epl", category: "football", name: "EPL", cadenceLabel: "Gameweek", format: "three_way", teamPool: TEAM_POOL_EPL, midLabel: "Draw", special: false, baseLiquidity: 400 },
-  { key: "ucl", category: "football", name: "Champions League", cadenceLabel: "Matchweek", format: "three_way", teamPool: TEAM_POOL_UCL, midLabel: "Draw", special: false, baseLiquidity: 380 },
-  { key: "fifa_wc", category: "football", name: "World Cup", cadenceLabel: "Round", format: "three_way", teamPool: TEAM_POOL_FIFA_WC, midLabel: "Draw", special: true, baseLiquidity: 450 },
-  { key: "euros", category: "football", name: "Euros", cadenceLabel: "Round", format: "three_way", teamPool: TEAM_POOL_EUROS, midLabel: "Draw", special: true, baseLiquidity: 420 },
-  { key: "six_nations", category: "rugby", name: "Six Nations", cadenceLabel: "Round", format: "three_way", teamPool: TEAM_POOL_SIX_NATIONS, midLabel: "Draw", special: true, baseLiquidity: 150 },
-  { key: "rugby_wc", category: "rugby", name: "Rugby World Cup", cadenceLabel: "Round", format: "three_way", teamPool: TEAM_POOL_RUGBY_WC, midLabel: "Draw", special: true, baseLiquidity: 180 },
-  { key: "prem_rugby", category: "rugby", name: "Premiership Rugby", cadenceLabel: "Round", format: "three_way", teamPool: TEAM_POOL_PREM_RUGBY, midLabel: "Draw", special: false, baseLiquidity: 100 },
-  { key: "nfl", category: "american_football", name: "NFL", cadenceLabel: "Week", format: "three_way_no_draw", teamPool: TEAM_POOL_NFL, special: false, baseLiquidity: 380 },
-  { key: "nba", category: "basketball", name: "NBA", cadenceLabel: "Gameweek", format: "three_way_no_draw", teamPool: TEAM_POOL_NBA, special: false, baseLiquidity: 350 },
-  { key: "ipl", category: "cricket", name: "IPL", cadenceLabel: "Match day", format: "three_way", teamPool: TEAM_POOL_IPL, midLabel: "Tie", special: false, baseLiquidity: 150 },
-  { key: "atp", category: "tennis", name: "ATP Tour", cadenceLabel: "Round", format: "three_way_no_draw", teamPool: TEAM_POOL_ATP, special: false, baseLiquidity: 250 },
-  { key: "wta", category: "tennis", name: "WTA Tour", cadenceLabel: "Round", format: "three_way_no_draw", teamPool: TEAM_POOL_WTA, special: false, baseLiquidity: 220 },
-  { key: "f1", category: "motorsport", name: "F1", cadenceLabel: "Race", format: "outright", field: DRIVER_FIELD, fieldProbs: DRIVER_PROBS, roundNames: F1_ROUNDS, special: false, baseLiquidity: 280 },
-  { key: "motogp", category: "motorsport", name: "MotoGP", cadenceLabel: "Race", format: "outright", field: MOTOGP_FIELD, fieldProbs: MOTOGP_PROBS, roundNames: MOTOGP_ROUNDS, special: false, baseLiquidity: 220 },
-  { key: "nascar", category: "motorsport", name: "NASCAR", cadenceLabel: "Race", format: "outright", field: NASCAR_FIELD, fieldProbs: NASCAR_PROBS, roundNames: NASCAR_ROUNDS, special: false, baseLiquidity: 180 },
-  { key: "pga", category: "golf", name: "PGA Tour", cadenceLabel: "Tournament", format: "outright", field: GOLFER_FIELD, fieldProbs: GOLFER_PROBS, roundNames: PGA_ROUNDS, special: false, baseLiquidity: 200 },
+  { key: "epl",         category: "football",         name: "EPL",              cadenceLabel: "Gameweek",   format: "three_way",        teamPool: TEAM_POOL_EPL,         midLabel: "Draw", special: false, baseLiquidity: 400, active: true  },
+  { key: "laliga",      category: "football",         name: "La Liga",          cadenceLabel: "Matchday",   format: "three_way",        teamPool: TEAM_POOL_LA_LIGA,     midLabel: "Draw", special: false, baseLiquidity: 380, active: true  },
+  { key: "ucl",         category: "football",         name: "Champions League", cadenceLabel: "Matchweek",  format: "three_way",        teamPool: TEAM_POOL_UCL,         midLabel: "Draw", special: false, baseLiquidity: 380, active: false },
+  { key: "fifa_wc",     category: "football",         name: "World Cup",        cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_FIFA_WC,     midLabel: "Draw", special: true,  baseLiquidity: 450, active: false },
+  { key: "euros",       category: "football",         name: "Euros",            cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_EUROS,       midLabel: "Draw", special: true,  baseLiquidity: 420, active: false },
+  { key: "six_nations", category: "rugby",            name: "Six Nations",      cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_SIX_NATIONS, midLabel: "Draw", special: true,  baseLiquidity: 150, active: false },
+  { key: "rugby_wc",    category: "rugby",            name: "Rugby World Cup",  cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_RUGBY_WC,    midLabel: "Draw", special: true,  baseLiquidity: 180, active: false },
+  { key: "prem_rugby",  category: "rugby",            name: "Premiership Rugby",cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_PREM_RUGBY,  midLabel: "Draw", special: false, baseLiquidity: 100, active: false },
+  { key: "nfl",         category: "american_football",name: "NFL",              cadenceLabel: "Week",       format: "three_way_no_draw",teamPool: TEAM_POOL_NFL,                           special: false, baseLiquidity: 380, active: true  },
+  { key: "nba",         category: "basketball",       name: "NBA",              cadenceLabel: "Gameweek",   format: "three_way_no_draw",teamPool: TEAM_POOL_NBA,                           special: false, baseLiquidity: 350, active: false },
+  { key: "ipl",         category: "cricket",          name: "IPL",              cadenceLabel: "Match day",  format: "three_way",        teamPool: TEAM_POOL_IPL,         midLabel: "Tie",  special: false, baseLiquidity: 150, active: false },
+  { key: "atp",         category: "tennis",           name: "ATP Tour",         cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_ATP,                           special: false, baseLiquidity: 250, active: false },
+  { key: "wta",         category: "tennis",           name: "WTA Tour",         cadenceLabel: "Round",      format: "three_way_no_draw",teamPool: TEAM_POOL_WTA,                           special: false, baseLiquidity: 220, active: false },
+  { key: "f1",          category: "motorsport",       name: "F1",               cadenceLabel: "Race",       format: "outright",         field: DRIVER_FIELD, fieldProbs: DRIVER_PROBS,    roundNames: F1_ROUNDS,     special: false, baseLiquidity: 280, active: true  },
+  { key: "motogp",      category: "motorsport",       name: "MotoGP",           cadenceLabel: "Race",       format: "outright",         field: MOTOGP_FIELD, fieldProbs: MOTOGP_PROBS,    roundNames: MOTOGP_ROUNDS, special: false, baseLiquidity: 220, active: false },
+  { key: "nascar",      category: "motorsport",       name: "NASCAR",           cadenceLabel: "Race",       format: "outright",         field: NASCAR_FIELD, fieldProbs: NASCAR_PROBS,    roundNames: NASCAR_ROUNDS, special: false, baseLiquidity: 180, active: false },
+  { key: "pga",         category: "golf",             name: "PGA Tour",         cadenceLabel: "Tournament", format: "outright",         field: GOLFER_FIELD, fieldProbs: GOLFER_PROBS,    roundNames: PGA_ROUNDS,    special: false, baseLiquidity: 200, active: false },
 ];
-
 const MIN_COMMIT_FRACTION = 0.5;
 const WEEKLY_TOPUP = 1000;
 const BOTS = ["turf_tom", "kop_end_kid", "9pointer", "matchday_mo", "blue_or_bust", "gunner_84"];
@@ -269,7 +267,6 @@ export default function PlatformMock() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
-  // ── Real auth: check for existing session on load ──
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -295,9 +292,7 @@ export default function PlatformMock() {
     setAuthError("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: "https://www.bynapp.online",
-      },
+      options: { redirectTo: "https://www.bynapp.online" },
     });
     if (error) setAuthError(error.message);
   }
@@ -356,7 +351,7 @@ export default function PlatformMock() {
 
   const comp = COMPETITIONS.find((c) => c.key === activeCompKey);
   const cd = compData[activeCompKey];
-  const compsInCategory = COMPETITIONS.filter((c) => c.category === activeCategoryKey);
+  const compsInCategory = COMPETITIONS.filter((c) => c.category === activeCategoryKey && c.active);
   const gated = comp.special && !cd.previewMode;
 
   function updateComp(key, fn) {
@@ -365,7 +360,7 @@ export default function PlatformMock() {
 
   function selectCategory(catKey) {
     setActiveCategoryKey(catKey);
-    const first = COMPETITIONS.find((c) => c.category === catKey);
+    const first = COMPETITIONS.find((c) => c.category === catKey && c.active);
     setActiveCompKey(first.key);
     setSelMarket(0);
     setSelOutcome(0);
@@ -553,6 +548,22 @@ export default function PlatformMock() {
     );
   }
 
+  if (authLoading) {
+    return (
+      <div style={{ ...shell, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{fontImports}</style>
+        <div style={{ textAlign: "center" }}>
+          <svg viewBox="0 0 80 80" width="48" height="48" style={{ marginBottom: 12 }}>
+            <rect x="0" y="0" width="80" height="80" rx="18" fill="#2FA86C"/>
+            <polygon points="40,14 63,27 63,53 40,66 17,53 17,27" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+            <circle cx="40" cy="40" r="10" fill="none" stroke="#0A1F1A" strokeWidth="2.5"/>
+          </svg>
+          <div className="sg" style={{ color: "#7FBFA0", fontSize: 13 }}>Loading BYN...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (screen === "login") {
     if (showLoginHowTo) {
       return (
@@ -641,7 +652,7 @@ export default function PlatformMock() {
                   onChange={(e) => setReferralBonusComp(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13 }}
                 >
-                  {COMPETITIONS.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+                  {COMPETITIONS.filter((c) => c.active).map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
                 </select>
               </>
             )}
@@ -718,9 +729,9 @@ export default function PlatformMock() {
           </div>
         </div>
 
-        {/* Category switcher — always visible so users can navigate between sports */}
+        {/* Category switcher — only shows categories with at least one active competition */}
         <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto" }}>
-          {CATEGORIES.map((c) => (
+          {CATEGORIES.filter((c) => COMPETITIONS.some((comp) => comp.category === c.key && comp.active)).map((c) => (
             <button
               key={c.key}
               onClick={() => selectCategory(c.key)}
@@ -852,7 +863,6 @@ export default function PlatformMock() {
                 seasonByUser={seasonByUser}
                 userName={userName}
                 userCountry={userCountry}
-                setUserCountry={setUserCountry}
                 comp={comp}
                 favouriteTeamByComp={favouriteTeamByComp}
                 setFavouriteTeamByComp={setFavouriteTeamByComp}
@@ -1162,7 +1172,7 @@ function LeaguesScreen({ userName, groups, newGroupName, setNewGroupName, create
   );
 }
 
-function RankingsScreen({ seasonByUser, userName, userCountry, setUserCountry, comp, favouriteTeamByComp, setFavouriteTeamByComp, allTeams, editWindowOpen }) {
+function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTeamByComp, setFavouriteTeamByComp, allTeams, editWindowOpen }) {
   const [filter, setFilter] = useState("global");
   const myFavouriteTeam = favouriteTeamByComp[comp.key];
   const hasTeams = allTeams.length > 0;
@@ -1176,36 +1186,42 @@ function RankingsScreen({ seasonByUser, userName, userCountry, setUserCountry, c
   return (
     <div>
       <div style={{ ...card, marginBottom: 12 }}>
-        <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Profile for ranking purposes</div>
-        <div style={{ fontSize: 11, color: editWindowOpen ? "#7FBFA0" : "#D9A441", marginBottom: 10 }}>
-          {editWindowOpen
-            ? "Season just started — country and favourite team are open to change for this round only."
-            : "Locked for the rest of this season. You'll be able to change these again once a new season starts."}
+        <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Your ranking profile</div>
+
+        {/* Country — set at signup, never changeable */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, background: "#16352A", marginBottom: hasTeams ? 10 : 0 }}>
+          <div>
+            <div style={{ fontSize: 10, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Country</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#F4F7F2" }}>{FLAG_MAP[userCountry] || "🌍"} {userCountry}</div>
+          </div>
+          <div style={{ fontSize: 10, color: "#5E8775" }}>Set at sign-up</div>
         </div>
 
-        <div style={{ fontSize: 11, color: "#9DBFAF", marginBottom: 4 }}>Country</div>
-        <select
-          value={userCountry}
-          onChange={(e) => setUserCountry(e.target.value)}
-          disabled={!editWindowOpen}
-          style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: editWindowOpen ? "#16352A" : "#0c2018", color: editWindowOpen ? "#F4F7F2" : "#6B8C7B", fontSize: 13, marginBottom: hasTeams ? 10 : 0 }}
-        >
-          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-
+        {/* Favourite team — selector only at start of season, text display otherwise */}
         {hasTeams && (
-          <>
-            <div style={{ fontSize: 11, color: "#9DBFAF", marginBottom: 4 }}>Favourite {comp.name} team</div>
-            <select
-              value={myFavouriteTeam || ""}
-              onChange={(e) => setFavouriteTeamByComp((prev) => ({ ...prev, [comp.key]: e.target.value }))}
-              disabled={!editWindowOpen}
-              style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: editWindowOpen ? "#16352A" : "#0c2018", color: editWindowOpen ? "#F4F7F2" : "#6B8C7B", fontSize: 13 }}
-            >
-              <option value="">Not set</option>
-              {allTeams.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </>
+          <div>
+            <div style={{ fontSize: 10, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Favourite {comp.name} team</div>
+            {editWindowOpen ? (
+              <>
+                <div style={{ fontSize: 11, color: "#2FA86C", marginBottom: 6 }}>New season — pick your team for this season's rankings.</div>
+                <select
+                  value={myFavouriteTeam || ""}
+                  onChange={(e) => setFavouriteTeamByComp((prev) => ({ ...prev, [comp.key]: e.target.value }))}
+                  style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid #2FA86C", background: "#16352A", color: "#F4F7F2", fontSize: 13 }}
+                >
+                  <option value="">Not set</option>
+                  {allTeams.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, background: "#16352A" }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#F4F7F2" }}>
+                  {myFavouriteTeam || <span style={{ color: "#5E8775" }}>Not set</span>}
+                </div>
+                <div style={{ fontSize: 10, color: "#5E8775" }}>Locked this season</div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -1420,7 +1436,7 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
             onChange={(e) => setReferralRewardComp(e.target.value)}
             style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "#16352A", color: "#F4F7F2", fontSize: 13, marginBottom: 8 }}
           >
-            {COMPETITIONS.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+            {COMPETITIONS.filter((c) => c.active).map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
           </select>
           <button onClick={simulateFriendJoining} className="sg" style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #2f6b4d", background: "transparent", color: "#7FBFA0", fontSize: 12, fontWeight: 600 }}>
             Simulate a friend joining with your code (demo only)
@@ -1429,7 +1445,7 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
       </div>
 
       {CATEGORIES.map((cat) => {
-        const compsInCat = COMPETITIONS.filter((c) => c.category === cat.key);
+        const compsInCat = COMPETITIONS.filter((c) => c.category === cat.key && c.active);
         const activeComps = compsInCat.filter((c) => {
           const cd = compData[c.key];
           return cd.balance > 0 || cd.bets.length > 0 || cd.season.length > 0;
@@ -1503,6 +1519,7 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
 
 function compsInactiveSummary(compData, userName) {
   const inactive = COMPETITIONS.filter((c) => {
+    if (!c.active) return false;
     const cd = compData[c.key];
     return cd.balance === 0 && cd.bets.length === 0 && cd.season.length === 0;
   });
