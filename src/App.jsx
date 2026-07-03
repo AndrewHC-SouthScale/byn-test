@@ -624,6 +624,8 @@ export default function PlatformMock() {
 
   async function simulateResults() {
     let myEndingBalance = 0;
+    let resolvedMarkets = [];
+
     updateComp(activeCompKey, (s) => {
       const resolved = s.markets.map((m) => {
         if (Math.random() < 0.08) return { ...m, result: null, postponed: true };
@@ -633,6 +635,7 @@ export default function PlatformMock() {
         for (let i = 0; i < m.outcomes.length; i++) { cum += p[i]; if (r <= cum) { result = i; break; } }
         return { ...m, result, postponed: false };
       });
+      resolvedMarkets = resolved; // capture for DB persistence below
 
       const settle = (bets) => bets.reduce((acc, bet) => {
         const m = resolved.find((x) => x.id === bet.marketId);
@@ -665,26 +668,52 @@ export default function PlatformMock() {
       return { ...s, markets: resolved, balance: myEnding, botBalances: newBotBalances, season: [...s.season, ...withRank], stage: "settled" };
     });
 
-    // Persist balance and settle bets in Supabase
+    // Persist to Supabase
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await persistBalance(session.user.id, activeCompKey, myEndingBalance);
+      if (!session) return;
 
-        // Mark bets as settled with payouts
-        const roundId = dbRoundState[activeCompKey]?.roundId;
-        if (roundId) {
-          const cd = compData[activeCompKey];
-          const settledBets = cd.bets.map((bet) => {
-            const market = cd.markets.find((m) => m.id === bet.marketId);
-            const won = !market?.postponed && bet.outcome === market?.result;
-            const refunded = market?.postponed;
-            return {
-              dbBetId: bet.dbBetId,
-              payout: won ? bet.shares : refunded ? bet.stake : 0,
-            };
-          }).filter((b) => b.dbBetId);
-          if (settledBets.length) await settleBetsInDB(session.user.id, roundId, settledBets);
+      await persistBalance(session.user.id, activeCompKey, myEndingBalance);
+
+      const roundId = dbRoundState[activeCompKey]?.roundId;
+      const dbOutcomeMap = dbRoundState[activeCompKey]?.dbOutcomeMap || {};
+
+      if (roundId && resolvedMarkets.length) {
+        // 1. Mark winning outcomes in market_outcomes table
+        const winnerUpdates = [];
+        resolvedMarkets.forEach((m, mi) => {
+          if (m.postponed || m.result === null) return;
+          const winnerKey = `local_${mi}_${m.result}`;
+          const winnerOutcomeId = dbOutcomeMap[winnerKey];
+          if (winnerOutcomeId) {
+            winnerUpdates.push({ id: winnerOutcomeId, is_winner: true });
+          }
+        });
+        if (winnerUpdates.length) {
+          await supabase.from('market_outcomes').upsert(winnerUpdates);
+        }
+
+        // 2. Mark round as settled
+        await supabase
+          .from('betting_rounds')
+          .update({ status: 'settled' })
+          .eq('id', roundId);
+
+        // 3. Settle individual bets with payouts
+        const currentCd = compData[activeCompKey];
+        const settledBets = currentCd.bets.map((bet) => {
+          const market = resolvedMarkets.find((m) => m.id === bet.marketId);
+          if (!market) return null;
+          const won = !market.postponed && bet.outcome === market.result;
+          const refunded = market.postponed;
+          return {
+            dbBetId: bet.dbBetId,
+            payout: won ? bet.shares : refunded ? bet.stake : 0,
+          };
+        }).filter((b) => b?.dbBetId);
+
+        if (settledBets.length) {
+          await settleBetsInDB(session.user.id, roundId, settledBets);
         }
       }
     } catch (err) {
