@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "./supabase.js";
 import { ensureProfile, isDisplayNameTaken } from "./profileService.js";
+import { loadUserState, persistBalance, applyRoundTopup, resetSeasonBalances } from "./persistenceManager.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -275,10 +276,23 @@ export default function PlatformMock() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
-        ensureProfile(session.user); // create profile in DB if first login
+        await ensureProfile(session.user);
+        // Load persisted wallet balances from Supabase
+        const persisted = await loadUserState(session.user.id, COMPETITIONS);
+        if (persisted && Object.keys(persisted).length > 0) {
+          setCompData((prev) => {
+            const updated = { ...prev };
+            Object.entries(persisted).forEach(([key, state]) => {
+              if (updated[key]) {
+                updated[key] = { ...updated[key], balance: state.balance };
+              }
+            });
+            return updated;
+          });
+        }
         setScreen("app");
       }
       setAuthLoading(false);
@@ -286,7 +300,7 @@ export default function PlatformMock() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
-        ensureProfile(session.user); // create profile in DB if first login
+        ensureProfile(session.user);
         setScreen("app");
       } else {
         setScreen("login");
@@ -443,10 +457,10 @@ export default function PlatformMock() {
     });
   }
 
-  function simulateResults() {
+  async function simulateResults() {
+    let myEndingBalance = 0;
     updateComp(activeCompKey, (s) => {
       const resolved = s.markets.map((m) => {
-        // small chance a fixture is postponed instead of resolved — bets on it are refunded, not won or lost
         if (Math.random() < 0.08) return { ...m, result: null, postponed: true };
         const p = prices(m.q, m.b);
         const r = Math.random();
@@ -465,6 +479,7 @@ export default function PlatformMock() {
       const myCommitted = s.bets.reduce((a, b) => a + b.stake, 0);
       const mySettled = settle(s.bets);
       const myEnding = myStart - myCommitted - s.forfeit + mySettled.payout + mySettled.refund;
+      myEndingBalance = myEnding;
 
       const newBotBalances = {};
       const rows = [];
@@ -484,11 +499,20 @@ export default function PlatformMock() {
 
       return { ...s, markets: resolved, balance: myEnding, botBalances: newBotBalances, season: [...s.season, ...withRank], stage: "settled" };
     });
+
+    // Persist the updated balance to Supabase
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await persistBalance(session.user.id, activeCompKey, myEndingBalance);
+    } catch (err) {
+      console.error('Error persisting balance after settlement:', err);
+    }
   }
 
-  function nextRound() {
+  async function nextRound() {
+    let newSeasonStarting = false;
     updateComp(activeCompKey, (s) => {
-      const newSeasonStarting = s.round >= SEASON_LENGTH_DEMO;
+      newSeasonStarting = s.round >= SEASON_LENGTH_DEMO;
       const nextRoundNum = newSeasonStarting ? 1 : s.round + 1;
       return {
         ...s,
@@ -503,9 +527,19 @@ export default function PlatformMock() {
         stage: "betting",
       };
     });
-    setAdBoostTotal(0); // cap resets each round — users can earn up to 1000 nuts per round via ads
+    setAdBoostTotal(0);
     setSelMarket(0);
     setSelOutcome(0);
+
+    // If season is resetting, zero out the wallet in Supabase too
+    if (newSeasonStarting) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) await persistBalance(session.user.id, activeCompKey, 0);
+      } catch (err) {
+        console.error('Error resetting balance for new season:', err);
+      }
+    }
   }
 
   function togglePreview() {
