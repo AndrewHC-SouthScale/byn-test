@@ -957,6 +957,13 @@ export default function PlatformMock() {
         <button onClick={() => setShowLoginHowTo(true)} className="sg" style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid #2f6b4d", background: "#16352A", color: "#7FBFA0", fontWeight: 600, fontSize: 13 }}>
           How does this work? →
         </button>
+        <p style={{ fontSize: 11, color: "#5E8775", marginTop: 16, lineHeight: 1.6 }}>
+          <a href="https://southscale.co.uk/legal/byn-terms" target="_blank" rel="noopener" style={{ color: "#7FBFA0" }}>Terms of Service</a>
+          {" · "}
+          <a href="https://southscale.co.uk/legal/byn-privacy" target="_blank" rel="noopener" style={{ color: "#7FBFA0" }}>Privacy Policy</a>
+          {" · "}
+          <a href="https://southscale.co.uk" target="_blank" rel="noopener" style={{ color: "#5E8775" }}>SouthScale</a>
+        </p>
       </div></div>
     );
   }
@@ -1014,6 +1021,12 @@ export default function PlatformMock() {
         >
           Start playing →
         </button>
+        <p style={{ fontSize: 11, color: "#5E8775", marginTop: 16, lineHeight: 1.6 }}>
+          By continuing you agree to our{" "}
+          <a href="https://southscale.co.uk/legal/byn-terms" target="_blank" rel="noopener" style={{ color: "#7FBFA0" }}>Terms of Service</a>
+          {" "}and{" "}
+          <a href="https://southscale.co.uk/legal/byn-privacy" target="_blank" rel="noopener" style={{ color: "#7FBFA0" }}>Privacy Policy</a>.
+        </p>
       </div></div>
     );
   }
