@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "./supabase.js";
+import { ensureProfile } from "./profileService.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -277,6 +278,7 @@ export default function PlatformMock() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
+        ensureProfile(session.user); // create profile in DB if first login
         setScreen("app");
       }
       setAuthLoading(false);
@@ -284,6 +286,7 @@ export default function PlatformMock() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
+        ensureProfile(session.user); // create profile in DB if first login
         setScreen("app");
       } else {
         setScreen("login");
