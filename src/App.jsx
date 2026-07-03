@@ -52,14 +52,18 @@ const CATEGORIES = [
 // Format: [home_prob, draw_prob, away_prob] for three-way markets
 // These approximate real bookmaker consensus lines stripped of the vig
 const TEAM_POOL_EPL = [
-  ["Arsenal", "Chelsea",     [0.52, 0.25, 0.23]],
-  ["Liverpool", "Man City",  [0.38, 0.26, 0.36]],
-  ["Spurs", "Man United",    [0.44, 0.27, 0.29]],
+  ["Arsenal", "Chelsea",         [0.52, 0.25, 0.23]],
+  ["Liverpool", "Man City",      [0.38, 0.26, 0.36]],
+  ["Spurs", "Man United",        [0.44, 0.27, 0.29]],
+  ["Newcastle", "Aston Villa",   [0.45, 0.27, 0.28]],
+  ["Brighton", "West Ham",       [0.48, 0.27, 0.25]],
 ];
 const TEAM_POOL_LA_LIGA = [
-  ["Real Madrid", "Barcelona",     [0.40, 0.25, 0.35]],
-  ["Atletico Madrid", "Sevilla",   [0.50, 0.26, 0.24]],
-  ["Villarreal", "Athletic Club",  [0.42, 0.27, 0.31]],
+  ["Real Madrid", "Barcelona",       [0.40, 0.25, 0.35]],
+  ["Atletico Madrid", "Sevilla",     [0.50, 0.26, 0.24]],
+  ["Villarreal", "Athletic Club",    [0.42, 0.27, 0.31]],
+  ["Real Betis", "Valencia",         [0.44, 0.27, 0.29]],
+  ["Real Sociedad", "Getafe",        [0.52, 0.26, 0.22]],
 ];
 const TEAM_POOL_UCL = [
   ["Real Madrid", "Bayern Munich", [0.42, 0.26, 0.32]],
@@ -92,9 +96,11 @@ const TEAM_POOL_PREM_RUGBY = [
   ["Sale Sharks", "Exeter Chiefs",        [0.44, 0.13, 0.43]],
 ];
 const TEAM_POOL_NFL = [
-  ["Chiefs", "Bills",     [0.55, 0.00, 0.45]],
-  ["Eagles", "Cowboys",   [0.48, 0.00, 0.52]],
-  ["49ers", "Ravens",     [0.43, 0.00, 0.57]],
+  ["Chiefs", "Bills",         [0.55, 0.00, 0.45]],
+  ["Eagles", "Cowboys",       [0.48, 0.00, 0.52]],
+  ["49ers", "Ravens",         [0.43, 0.00, 0.57]],
+  ["Packers", "Bears",        [0.52, 0.00, 0.48]],
+  ["Dolphins", "Patriots",    [0.58, 0.00, 0.42]],
 ];
 const TEAM_POOL_NBA = [
   ["Celtics", "Lakers",    [0.58, 0.00, 0.42]],
@@ -275,7 +281,6 @@ export default function PlatformMock() {
       }
       setAuthLoading(false);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Player");
@@ -284,7 +289,6 @@ export default function PlatformMock() {
         setScreen("login");
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
