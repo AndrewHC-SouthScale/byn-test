@@ -5,9 +5,22 @@ function generateReferralCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+// Check if a display name is already taken
+export async function isDisplayNameTaken(name) {
+  if (!name?.trim()) return false
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .ilike('display_name', name.trim()) // case-insensitive check
+    .maybeSingle()
+
+  if (error) return false
+  return !!data
+}
+
 // Ensure a profile exists for the logged-in user.
 // Called on every login — creates on first visit, returns existing on subsequent visits.
-export async function ensureProfile(user) {
+export async function ensureProfile(user, displayName = null) {
   if (!user) return null
 
   // Check if profile already exists
@@ -18,17 +31,14 @@ export async function ensureProfile(user) {
     .single()
 
   if (fetchError && fetchError.code !== 'PGRST116') {
-    // PGRST116 = row not found, anything else is a real error
     console.error('Error fetching profile:', fetchError)
     return null
   }
 
-  if (existing) {
-    return existing
-  }
+  if (existing) return existing
 
   // First login — create profile
-  const displayName =
+  const chosenName = displayName?.trim() ||
     user.user_metadata?.full_name ||
     user.email?.split('@')[0] ||
     'Player'
@@ -37,11 +47,11 @@ export async function ensureProfile(user) {
     .from('profiles')
     .insert({
       id: user.id,
-      display_name: displayName,
+      display_name: chosenName,
       email: user.email,
       referral_code: generateReferralCode(),
-      country: null,          // set by user after login
-      date_of_birth: null,    // set by user after login
+      country: null,
+      date_of_birth: null,
     })
     .select()
     .single()
