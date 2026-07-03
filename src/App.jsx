@@ -269,6 +269,7 @@ function botBetRound(markets, balance) {
 function initCompetitionState(comp) {
   return {
     round: 1,
+    seasonNumber: 1,
     stage: "betting",
     markets: newRoundMarkets(comp, 1),
     balance: 0,
@@ -278,7 +279,8 @@ function initCompetitionState(comp) {
     botBetsThisRound: {},
     botForfeitThisRound: {},
     season: [],
-    previewMode: false, // demo-only override for special events outside their real window
+    previewMode: false,
+    liveSeeded: false,
   };
 }
 
@@ -456,15 +458,29 @@ export default function PlatformMock() {
   const [liveFixtures, setLiveFixtures] = useState({});
   const [fixturesLoading, setFixturesLoading] = useState(false);
 
+  // Seed cd.markets from live API odds at round start (before any bets)
+  // After seeding, LMSR takes over — API is never consulted again mid-round
+  function seedMarketsFromLive(compKey, fixtures) {
+    const c = COMPETITIONS.find((x) => x.key === compKey);
+    if (!c) return;
+    updateComp(compKey, (s) => {
+      if (s.liveSeeded || s.bets.length > 0 || s.stage !== "betting") return s;
+      const liveMarkets = liveFixturesToMarkets(fixtures, c);
+      if (!liveMarkets?.length) return s;
+      return { ...s, markets: liveMarkets, liveSeeded: true };
+    });
+  }
+
   // Load live fixtures for the active competition
   async function loadLiveFixtures(compKey) {
-    const comp = COMPETITIONS.find((c) => c.key === compKey);
-    if (!comp) return;
+    const c = COMPETITIONS.find((x) => x.key === compKey);
+    if (!c) return;
     setFixturesLoading(true);
     try {
       const fixtures = await fetchUpcomingFixtures(compKey, 14);
       if (fixtures.length > 0) {
         setLiveFixtures((prev) => ({ ...prev, [compKey]: fixtures }));
+        seedMarketsFromLive(compKey, fixtures); // seed LMSR state from API odds
       }
     } catch (err) {
       console.error('Error loading live fixtures:', err);
@@ -516,15 +532,10 @@ export default function PlatformMock() {
   const minRequired = startOfRound * MIN_COMMIT_FRACTION;
   const meetsMin = committed >= minRequired;
 
-  // Use live fixtures from Odds API if available, otherwise fall back to mock data
-  const activeMarkets = useMemo(() => {
-    const live = liveFixtures[activeCompKey];
-    if (live?.length) {
-      const converted = liveFixturesToMarkets(live, comp);
-      if (converted?.length) return converted;
-    }
-    return cd.markets;
-  }, [liveFixtures, activeCompKey, cd.markets, comp]);
+  // activeMarkets is always cd.markets — the LMSR state
+  // Live API odds are seeded INTO cd.markets at round start via seedMarketsFromLive
+  // After the first bet, LMSR pricing takes over completely
+  const activeMarkets = useMemo(() => cd.markets, [cd.markets]);
 
   // Reset selection when active markets change to avoid out-of-bounds crashes
   useEffect(() => {
@@ -677,7 +688,7 @@ export default function PlatformMock() {
       });
       rows.push({ name: userName, roundPayout: mySettled.payout, endingBalance: myEnding });
       rows.sort((a, b) => b.endingBalance - a.endingBalance);
-      const withRank = rows.map((r, i) => ({ ...r, rank: i + 1, round: s.round }));
+      const withRank = rows.map((r, i) => ({ ...r, rank: i + 1, round: s.round, season: s.seasonNumber }));
 
       return { ...s, markets: resolved, balance: myEnding, botBalances: newBotBalances, season: [...s.season, ...withRank], stage: "settled" };
     });
@@ -792,6 +803,7 @@ export default function PlatformMock() {
       return {
         ...s,
         round: nextRoundNum,
+        seasonNumber: newSeasonStarting ? s.seasonNumber + 1 : s.seasonNumber,
         markets: newRoundMarkets(comp, nextRoundNum),
         bets: [],
         forfeit: 0,
@@ -799,7 +811,9 @@ export default function PlatformMock() {
         botBalances: newSeasonStarting ? Object.fromEntries(BOTS.map((b) => [b, 0])) : s.botBalances,
         botBetsThisRound: {},
         botForfeitThisRound: {},
+        season: newSeasonStarting ? [] : s.season, // clear leaderboard for new season
         stage: "betting",
+        liveSeeded: false,
       };
     });
     setAdBoostTotal(0);
@@ -808,13 +822,33 @@ export default function PlatformMock() {
     // Clear DB round state so it reinitialises on next bet
     setDbRoundState((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
 
-    // If season is resetting, zero out the wallet in Supabase too
+    // If season is resetting, zero out the wallet and archive standings in Supabase
     if (newSeasonStarting) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) await persistBalance(session.user.id, activeCompKey, 0);
+        if (session) {
+          // Reset wallet balance
+          await persistBalance(session.user.id, activeCompKey, 0);
+
+          // Get competition ID to clear standings
+          const { data: compRow } = await supabase
+            .from('competitions')
+            .select('id')
+            .eq('key', activeCompKey)
+            .maybeSingle();
+
+          if (compRow) {
+            // Delete standings for the old season so rankings start fresh
+            // Historical rounds are preserved in betting_rounds for records
+            await supabase
+              .from('round_standings')
+              .delete()
+              .eq('competition_id', compRow.id)
+              .eq('season_number', compData[activeCompKey].seasonNumber);
+          }
+        }
       } catch (err) {
-        console.error('Error resetting balance for new season:', err);
+        console.error('Error resetting season:', err);
       }
     }
   }
@@ -825,8 +859,10 @@ export default function PlatformMock() {
 
   const seasonByUser = useMemo(() => {
     const names = [userName, ...BOTS];
+    // Only show current season's data
+    const currentSeasonRows = cd.season.filter((r) => r.season === cd.seasonNumber || !r.season);
     return names.map((name) => {
-      const rows = cd.season.filter((r) => r.name === name);
+      const rows = currentSeasonRows.filter((r) => r.name === name);
       const latest = rows[rows.length - 1];
       const top3 = rows.filter((r) => r.rank <= 3).length;
       const avgRank = rows.length ? (rows.reduce((a, r) => a + r.rank, 0) / rows.length).toFixed(1) : "-";
@@ -835,7 +871,7 @@ export default function PlatformMock() {
       const favouriteTeam = isMe ? favouriteTeamByComp[comp.key] : botProfiles[name].favouriteTeamByComp[comp.key];
       return { name, currentBalance: latest ? latest.endingBalance : 0, weeksPlayed: rows.length, top3, avgRank, country, favouriteTeam };
     }).sort((a, b) => b.currentBalance - a.currentBalance);
-  }, [cd.season, userName, userCountry, favouriteTeamByComp, botProfiles, comp]);
+  }, [cd.season, cd.seasonNumber, userName, userCountry, favouriteTeamByComp, botProfiles, comp]);
 
   function genInviteCode() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
 
@@ -1201,14 +1237,14 @@ export default function PlatformMock() {
                         <span>⏳</span><span>Loading live fixtures...</span>
                       </div>
                     )}
-                    {!fixturesLoading && liveFixtures[activeCompKey]?.length > 0 && (
+                    {!fixturesLoading && cd.liveSeeded && (
                       <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#0D2B1A", border: "1px solid #2f6b4d", marginBottom: 8, fontSize: 11, color: "#2FA86C" }}>
-                        <span>🟢</span><span>Live fixtures — odds seeded from real bookmaker data</span>
+                        <span>🟢</span><span>Live fixtures — opening odds seeded from bookmaker data, now driven by your bets</span>
                       </div>
                     )}
-                    {!fixturesLoading && !liveFixtures[activeCompKey]?.length && (
+                    {!fixturesLoading && !cd.liveSeeded && (
                       <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#16352A", marginBottom: 8, fontSize: 11, color: "#9DBFAF" }}>
-                        <span>📋</span><span>Demo fixtures — no upcoming matches found in the next 7 days</span>
+                        <span>📋</span><span>Demo fixtures — no upcoming matches found in the next 14 days</span>
                       </div>
                     )}
                     <div style={{ display: "flex", gap: 8, padding: 10, borderRadius: 8, background: "#16352A", marginBottom: 12, fontSize: 11, color: "#7FBFA0" }}>
