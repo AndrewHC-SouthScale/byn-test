@@ -144,7 +144,7 @@ const COMPETITIONS = [
   { key: "epl",         category: "football",         name: "EPL",              cadenceLabel: "Gameweek",   format: "three_way",        teamPool: TEAM_POOL_EPL,         midLabel: "Draw", special: false, baseLiquidity: 400, active: true  },
   { key: "laliga",      category: "football",         name: "La Liga",          cadenceLabel: "Matchday",   format: "three_way",        teamPool: TEAM_POOL_LA_LIGA,     midLabel: "Draw", special: false, baseLiquidity: 380, active: true  },
   { key: "ucl",         category: "football",         name: "Champions League", cadenceLabel: "Matchweek",  format: "three_way",        teamPool: TEAM_POOL_UCL,         midLabel: "Draw", special: false, baseLiquidity: 380, active: false },
-  { key: "fifa_wc",     category: "football",         name: "World Cup",        cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_FIFA_WC,     midLabel: "Draw", special: true,  baseLiquidity: 450, active: false },
+  { key: "fifa_wc",     category: "football",         name: "World Cup",        cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_FIFA_WC,     midLabel: "Draw", special: false, baseLiquidity: 450, active: true  },
   { key: "euros",       category: "football",         name: "Euros",            cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_EUROS,       midLabel: "Draw", special: true,  baseLiquidity: 420, active: false },
   { key: "six_nations", category: "rugby",            name: "Six Nations",      cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_SIX_NATIONS, midLabel: "Draw", special: true,  baseLiquidity: 150, active: false },
   { key: "rugby_wc",    category: "rugby",            name: "Rugby World Cup",  cadenceLabel: "Round",      format: "three_way",        teamPool: TEAM_POOL_RUGBY_WC,    midLabel: "Draw", special: true,  baseLiquidity: 180, active: false },
@@ -202,6 +202,22 @@ function newRoundMarkets(comp, roundNum) {
 // Convert live fixtures from The Odds API into BYN market format
 function liveFixturesToMarkets(fixtures, comp) {
   if (!fixtures?.length) return null;
+
+  // Outright market (F1, PGA etc) — single market with full field
+  if (fixtures[0]?.format === 'outright') {
+    const f = fixtures[0];
+    return [{
+      id: 0,
+      name: f.name,
+      outcomes: f.outcomes,
+      q: probsToQ(f.probabilities, comp.baseLiquidity),
+      b: comp.baseLiquidity,
+      kickoff: f.kickoff,
+      externalId: f.externalId,
+    }];
+  }
+
+  // H2H markets (football, NFL etc) — one market per fixture
   return fixtures.slice(0, 10).map((f, i) => ({
     id: i,
     name: f.name,
@@ -342,9 +358,11 @@ export default function PlatformMock() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load live fixtures for default competition on mount
+  // Load live fixtures for default competitions on mount
   useEffect(() => {
     loadLiveFixtures("epl");
+    loadLiveFixtures("f1");
+    loadLiveFixtures("fifa_wc");
   }, []);
 
   async function signInWithGoogle() {
@@ -439,10 +457,10 @@ export default function PlatformMock() {
   // Load live fixtures for the active competition
   async function loadLiveFixtures(compKey) {
     const comp = COMPETITIONS.find((c) => c.key === compKey);
-    if (!comp || comp.format === 'outright') return; // outright markets (F1 etc) handled separately
+    if (!comp) return;
     setFixturesLoading(true);
     try {
-      const fixtures = await fetchUpcomingFixtures(compKey);
+      const fixtures = await fetchUpcomingFixtures(compKey, 14);
       if (fixtures.length > 0) {
         setLiveFixtures((prev) => ({ ...prev, [compKey]: fixtures }));
       }
