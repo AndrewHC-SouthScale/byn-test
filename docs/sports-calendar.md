@@ -1,117 +1,290 @@
 # BYN — Sports Calendar & Activation Tracker
 
-For each competition, BYN should be activated **30-60 days before the season/tournament starts** so markets can be seeded and users can start placing bets ahead of the first round.
+For each competition, BYN should be activated **30–60 days before the season/tournament starts** so markets can be seeded and users can start placing bets ahead of the first round.
 
-The Odds API fixtures typically appear **1-2 weeks before the first match**. Re-enable the API (`oddsService.js`) and activate the competition in `COMPETITIONS` at the **"BYN activate by"** date.
-
----
-
-## 🗓️ 2026 — Remaining year
-
-| Competition | BYN key | Format | Start date | End date | BYN activate by | Status |
-|---|---|---|---|---|---|---|
-| ~~World Cup 2026~~ | `fifa_wc` | Knockout (no draw) | ~~11 Jun 2026~~ | 19 Jul 2026 | ~~Already active~~ | 🟢 Live |
-| ~~Wimbledon ATP~~ | `atp` | Match winner | ~~30 Jun 2026~~ | 12 Jul 2026 | ~~Already active~~ | 🟢 Live (check end date) |
-| ~~Wimbledon WTA~~ | `wta` | Match winner | ~~30 Jun 2026~~ | 12 Jul 2026 | ~~Already active~~ | 🟢 Live (check end date) |
-| ~~The Open (Golf)~~ | `pga` | Outright winner | ~~16 Jul 2026~~ | 19 Jul 2026 | ~~Already active~~ | 🟢 Live (check end date) |
-| EPL 2026-27 | `epl` | Three-way | **21 Aug 2026** | 30 May 2027 | **22 Jul 2026** | ⏳ Pending |
-| La Liga 2026-27 | `laliga` | Three-way | **15 Aug 2026** | ~23 May 2027 | **15 Jul 2026** | ⏳ Pending |
-| NFL 2026-27 | `nfl` | Two-way | **9 Sep 2026** | 10 Jan 2027 | **10 Aug 2026** | ⏳ Pending |
-| NBA 2026-27 | `nba` | Two-way | **~21 Oct 2026** | ~Apr 2027 | **21 Sep 2026** | ⏳ Pending (inactive) |
-| Champions League 2026-27 | `ucl` | Three-way | **~16 Sep 2026** | ~28 May 2027 | **16 Aug 2026** | ⏳ Pending (inactive) |
+The Odds API fixtures typically appear **1–2 weeks before the first match**. Re-enable the API (`oddsService.js`) and activate the competition in `COMPETITIONS` at the **"BYN activate by"** date.
 
 ---
 
-## 🗓️ 2027
+## 📌 How to read this document
 
-| Competition | BYN key | Format | Start date | End date | BYN activate by | Status |
-|---|---|---|---|---|---|---|
-| Six Nations 2027 | `six_nations` | Three-way | **5 Feb 2027** | ~Mid Mar 2027 | **6 Jan 2027** | ⏳ Pending (inactive) |
-| IPL 2027 | `ipl` | Two-way | **~10 Mar 2027** | ~15 May 2027 | **8 Feb 2027** | ⏳ Pending (inactive) |
-| US Masters (Golf) | `pga` | Outright winner | **~8 Apr 2027** | ~11 Apr 2027 | **8 Mar 2027** | ⏳ Pending |
-| ATP French Open | `atp` | Match winner | **~24 May 2027** | ~13 Jun 2027 | **24 Apr 2027** | ⏳ Pending |
-| WTA French Open | `wta` | Match winner | **~24 May 2027** | ~13 Jun 2027 | **24 Apr 2027** | ⏳ Pending |
-| ATP Wimbledon 2027 | `atp` | Match winner | **~28 Jun 2027** | ~11 Jul 2027 | **28 May 2027** | ⏳ Pending |
-| WTA Wimbledon 2027 | `wta` | Match winner | **~28 Jun 2027** | ~11 Jul 2027 | **28 May 2027** | ⏳ Pending |
-| EPL 2027-28 | `epl` | Three-way | **~Aug 2027** | ~May 2028 | **~Jul 2027** | ⏳ Future |
-| La Liga 2027-28 | `laliga` | Three-way | **~Aug 2027** | ~May 2028 | **~Jul 2027** | ⏳ Future |
-| NFL 2027-28 | `nfl` | Two-way | **~Sep 2027** | ~Jan 2028 | **~Aug 2027** | ⏳ Future |
-| Rugby World Cup 2027 | `rugby_wc` | Three-way | **~Sep 2027** | ~Nov 2027 | **~Aug 2027** | ⏳ Future (inactive) |
+| Column | Meaning |
+|---|---|
+| Competition | The event or season |
+| BYN key | The `key` value in `COMPETITIONS` in App.jsx |
+| Format | `three_way` (home/draw/away), `three_way_no_draw`, `two_way`, `outright` |
+| Start | First match/race of the competition |
+| End | Final match/race |
+| BYN activate by | Deadline to activate in app (30–60 days before start) |
+| Odds API key | The sport key to use in `SPORT_KEY_MAP` in oddsService.js |
+| Status | Current state |
 
 ---
 
-## 🔧 What to do at each activation
+## ⚽ FOOTBALL
 
-When the "BYN activate by" date arrives, do the following:
+### EPL (English Premier League)
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **21 Aug 2026** | 30 May 2027 | **22 Jul 2026** | `soccer_epl` |
+| 2027–28 | ~Aug 2027 | ~May 2028 | ~Jul 2027 | `soccer_epl` |
 
-### 1. Update `COMPETITIONS` in `App.jsx`
-- Set `active: true` for the competition
-- Update `name` if needed (e.g. "ATP Wimbledon" → "ATP French Open")
-- Update `format` if needed (e.g. World Cup group stage → `three_way`, knockout → `three_way_no_draw`)
-
-### 2. Re-enable the Odds API in `oddsService.js`
-- Remove the early `return []` in `fetchUpcomingFixtures`
-- Add the correct sport key to `SPORT_KEY_MAP` if not already there
-
-### 3. Update `SPORT_KEY_MAP` in `oddsService.js`
-Confirm the correct API key for the competition:
-```
-epl:          'soccer_epl'
-laliga:       'soccer_spain_la_liga'
-nfl:          'americanfootball_nfl'
-nba:          'basketball_nba'
-ucl:          'soccer_uefa_champs_league'
-six_nations:  'rugby_union_six_nations'
-atp:          (varies by tournament — check The Odds API /sports endpoint)
-wta:          (varies by tournament — check The Odds API /sports endpoint)
-pga:          (varies by tournament — check The Odds API /sports endpoint)
-ipl:          'cricket_ipl'
-```
-
-### 4. Set the correct season length in `App.jsx`
-Replace `SEASON_LENGTH_DEMO = 4` with the real value before go-live:
-```
-EPL / La Liga:        38 rounds
-NFL:                  17 rounds (18 weeks inc. bye)
-NBA:                  82 rounds
-Champions League:     ~10 rounds (league phase only)
-Six Nations:          5 rounds
-IPL:                  ~14 rounds (group stage)
-World Cup (groups):   3 rounds
-Wimbledon:            ~7 rounds
-The Open / Masters:   4 rounds
-```
-
-### 5. Update mock team pools if needed
-When live API odds are unavailable (off-season), the mock team pool is the fallback. Update team names to reflect current squads/formats before each season.
-
-### 6. Add competitions to Supabase
-Run in Supabase SQL Editor to add any new competition not already in the DB:
-```sql
-INSERT INTO public.competitions (category_id, key, name, cadence, is_special_event, base_liquidity)
-VALUES (X, 'key', 'Name', 'weekly', false, 300)
-ON CONFLICT (key) DO NOTHING;
-```
+- BYN key: `epl` · Format: `three_way` · Rounds: 38
+- Season fixtures released: June each year
+- **Status: ⏳ Active (off-season, demo fixtures) — activate 22 Jul 2026**
 
 ---
 
-## 📋 Competitions currently active in BYN
+### La Liga
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **15 Aug 2026** | ~23 May 2027 | **15 Jul 2026** | `soccer_spain_la_liga` |
+| 2027–28 | ~Aug 2027 | ~May 2028 | ~Jul 2027 | `soccer_spain_la_liga` |
 
-| Competition | Active | Notes |
+- BYN key: `laliga` · Format: `three_way` · Rounds: 38
+- **Status: ⏳ Active (off-season, demo fixtures) — activate 15 Jul 2026**
+
+---
+
+### World Cup 2026
+| Event | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| Group stage | 11 Jun 2026 | 2 Jul 2026 | Already passed | `soccer_fifa_world_cup` |
+| Knockout stage | 3 Jul 2026 | **19 Jul 2026** | Already active | `soccer_fifa_world_cup` |
+
+- BYN key: `fifa_wc` · Format: `three_way` (groups) / `three_way_no_draw` (knockout)
+- Next World Cup: 2030 (Spain/Portugal/Morocco)
+- **Status: 🟢 Active — ends 19 Jul 2026. Deactivate after final.**
+
+---
+
+### UEFA Champions League
+| Season | League phase start | Final | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **~16 Sep 2026** | ~28 May 2027 | **16 Aug 2026** | `soccer_uefa_champs_league` *(verify on API)* |
+
+- BYN key: `ucl` · Format: `three_way` · Rounds: ~10 (league phase)
+- Draw: 27 Aug 2026
+- **Status: ❌ Inactive — activate 16 Aug 2026**
+
+---
+
+## 🏈 AMERICAN FOOTBALL
+
+### NFL
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **9 Sep 2026** | 10 Jan 2027 | **10 Aug 2026** | `americanfootball_nfl` |
+| Super Bowl LXI | 14 Feb 2027 | — | — | — |
+| 2027–28 | ~Sep 2027 | ~Jan 2028 | ~Aug 2027 | `americanfootball_nfl` |
+
+- BYN key: `nfl` · Format: `two_way` (no draw) · Rounds: 17
+- **Status: ⏳ Active (off-season, demo fixtures) — activate 10 Aug 2026**
+
+---
+
+## 🏀 BASKETBALL
+
+### NBA
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **~21 Oct 2026** | ~Jun 2027 | **21 Sep 2026** | `basketball_nba` |
+| 2027–28 | ~Oct 2027 | ~Jun 2028 | ~Sep 2027 | `basketball_nba` |
+
+- BYN key: `nba` · Format: `two_way` · Rounds: 82
+- NBA All-Star 2027: 19–21 Feb 2027, Phoenix
+- NBA London Game: 17 Jan 2027 (Spurs vs Pelicans, Co-op Live)
+- **Status: ❌ Inactive — activate 21 Sep 2026**
+
+---
+
+## 🎾 TENNIS
+
+*Tennis runs year-round — BYN activates per Grand Slam tournament. After each tournament ends, update the competition name and rename `atp`/`wta` to the next Grand Slam.*
+
+### ATP & WTA — 2026 Grand Slams
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| ~~Australian Open~~ | ~~12 Jan 2026~~ | ~~1 Feb 2026~~ | ~~Already passed~~ | — |
+| ~~French Open~~ | ~~24 May 2026~~ | ~~7 Jun 2026~~ | ~~Already passed~~ | — |
+| **Wimbledon** | **29 Jun 2026** | **12 Jul 2026** | Already active | `tennis_atp_wimbledon` / `tennis_wta_wimbledon` |
+| US Open | **31 Aug 2026** | **13 Sep 2026** | **1 Aug 2026** | *(check API — may be `tennis_atp_us_open`)* |
+
+### ATP & WTA — 2027 Grand Slams
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| Australian Open 2027 | ~12 Jan 2027 | ~1 Feb 2027 | **12 Dec 2026** | *(check API)* |
+| French Open 2027 | ~24 May 2027 | ~7 Jun 2027 | **24 Apr 2027** | *(check API)* |
+| Wimbledon 2027 | ~28 Jun 2027 | ~11 Jul 2027 | **28 May 2027** | *(check API)* |
+| US Open 2027 | ~30 Aug 2027 | ~12 Sep 2027 | **30 Jul 2027** | *(check API)* |
+
+- BYN keys: `atp` / `wta` · Format: `two_way` (no draw in tennis)
+- **Remember:** Rename competition in App.jsx to match each tournament (e.g. "ATP Wimbledon" → "ATP US Open")
+- **Check Odds API `/sports` endpoint** before each Grand Slam for the correct key
+- **Status: 🟢 Active (Wimbledon) — ends 12 Jul 2026**
+
+---
+
+## ⛳ GOLF
+
+*Golf activates per major tournament. Rename `pga` in App.jsx to match the current event.*
+
+### PGA / Golf Majors — 2026
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| ~~The Masters~~ | ~~9 Apr 2026~~ | ~~12 Apr 2026~~ | ~~Already passed~~ | — |
+| ~~PGA Championship~~ | ~~14 May 2026~~ | ~~17 May 2026~~ | ~~Already passed~~ | — |
+| ~~US Open~~ | ~~11 Jun 2026~~ | ~~14 Jun 2026~~ | ~~Already passed~~ | — |
+| **The Open** | **16 Jul 2026** | **19 Jul 2026** | Already active | `golf_the_open_championship_winner` |
+
+### PGA / Golf Majors — 2027
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| The Masters 2027 | ~8 Apr 2027 | ~11 Apr 2027 | **8 Mar 2027** | *(check API)* |
+| PGA Championship 2027 | ~May 2027 | ~May 2027 | ~Apr 2027 | *(check API)* |
+| US Open 2027 | ~Jun 2027 | ~Jun 2027 | ~May 2027 | *(check API)* |
+| The Open 2027 | ~Jul 2027 | ~Jul 2027 | ~Jun 2027 | *(check API)* |
+
+- BYN key: `pga` · Format: `outright` (field of 8 favourites)
+- **Status: 🟢 Active (The Open) — ends 19 Jul 2026**
+
+---
+
+## 🏎️ MOTORSPORT
+
+### Formula 1
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 | 8 Mar 2026 (Australia) | 6 Dec 2026 (Abu Dhabi) | Already passed | ❌ Not on Odds API |
+
+- BYN key: `f1` · Format: `outright` · Rounds: 22
+- **F1 is NOT available on The Odds API** — uses demo fixtures only
+- Consider alternative data source (e.g. Sportradar, API-Sports) for future
+- **Status: ✅ Active (demo fixtures only — no live odds)**
+
+---
+
+### MotoGP
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 | 1 Mar 2026 (Thailand) | 29 Nov 2026 (Valencia) | Already passed | ❌ Not on Odds API |
+| 2027 | ~Mar 2027 | ~Nov 2027 | ~Jan 2027 | *(check API — new 850cc era)* |
+
+- BYN key: `motogp` · Format: `outright` · Rounds: 22
+- 2027 is a new technical era (850cc engines, Pirelli tyres) — check if Odds API adds coverage
+- **Status: ❌ Inactive — not on Odds API. Activate if coverage appears.**
+
+---
+
+### NASCAR Cup Series
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 | 15 Feb 2026 (Daytona 500) | 8 Nov 2026 (Homestead) | Already passed | ❌ Not on Odds API |
+| 2027 | ~Feb 2027 | ~Nov 2027 | ~Jan 2027 | *(check API)* |
+
+- BYN key: `nascar` · Format: `outright` · Rounds: 36
+- **Status: ❌ Inactive — not on Odds API. Activate if coverage appears.**
+
+---
+
+## 🏉 RUGBY UNION
+
+### Six Nations
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2027 Six Nations | **5 Feb 2027** | ~mid Mar 2027 | **6 Jan 2027** | *(check API — may be `rugby_union_six_nations`)* |
+
+- BYN key: `six_nations` · Format: `three_way` · Rounds: 5
+- Fixtures announced: 9 Mar 2026 (already known)
+- **Status: ❌ Inactive — activate 6 Jan 2027**
+
+---
+
+### Premiership Rugby (Gallagher PREM)
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **25–27 Sep 2026** | 19 Jun 2027 | **26 Aug 2026** | *(check API)* |
+
+- BYN key: `prem_rugby` · Format: `three_way`
+- Fixture list released: July 2026
+- First season under franchise model (no promotion/relegation)
+- **Status: ❌ Inactive — activate 26 Aug 2026**
+
+---
+
+### Rugby World Cup
+| Tournament | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2027 RWC | **~Sep 2027** | ~Nov 2027 | **~Aug 2027** | *(check API)* |
+
+- BYN key: `rugby_wc` · Format: `three_way` (pools) / `three_way_no_draw` (knockout)
+- Host nation TBC — likely Australia
+- **Status: ❌ Inactive — next tournament 2027**
+
+---
+
+## 🏏 CRICKET
+
+### IPL
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2027 | **~10 Mar 2027** | ~15 May 2027 | **8 Feb 2027** | `cricket_ipl` *(verify on API)* |
+
+- BYN key: `ipl` · Format: `two_way` · Rounds: ~14 (group stage)
+- **Status: ❌ Inactive — activate 8 Feb 2027**
+
+---
+
+## 🗓️ MASTER ACTIVATION TIMELINE
+
+*A quick view of what to activate and when, in chronological order.*
+
+| Date | Action |
+|---|---|
+| **15 Jul 2026** | Activate La Liga 2026–27 in BYN |
+| **19 Jul 2026** | World Cup ends — deactivate `fifa_wc` |
+| **19 Jul 2026** | The Open ends — rename `pga` (e.g. "Golf — Next Major TBC") |
+| **22 Jul 2026** | Activate EPL 2026–27 in BYN |
+| **12 Jul 2026** | Wimbledon ends — rename `atp`/`wta` to "ATP US Open" / "WTA US Open" |
+| **1 Aug 2026** | Activate ATP & WTA US Open in BYN |
+| **10 Aug 2026** | Activate NFL 2026–27 in BYN |
+| **16 Aug 2026** | Activate Champions League 2026–27 in BYN |
+| **26 Aug 2026** | Activate Premiership Rugby 2026–27 in BYN |
+| **13 Sep 2026** | US Open tennis ends — rename `atp`/`wta` to next tournament |
+| **21 Sep 2026** | Activate NBA 2026–27 in BYN |
+| **6 Jan 2027** | Activate Six Nations 2027 in BYN |
+| **8 Feb 2027** | Activate IPL 2027 in BYN |
+| **8 Mar 2027** | Activate The Masters (golf) in BYN |
+
+---
+
+## 🔧 Activation checklist (do each time)
+
+1. **App.jsx** — set `active: true`, update `name`, check `format`
+2. **oddsService.js** — remove `return []`, confirm `SPORT_KEY_MAP` key
+3. **Verify Odds API** — run `https://api.the-odds-api.com/v4/sports?apiKey=YOUR_KEY` to confirm the sport key is available and `active: true`
+4. **Supabase** — add competition row if not already present
+5. **App.jsx** — set real `SEASON_LENGTH` (replace `SEASON_LENGTH_DEMO = 4`)
+6. **Test** — sign in, navigate to competition, confirm 🟢 live fixtures banner appears
+
+---
+
+## ❓ Odds API availability (as of Jul 2026)
+
+| Sport | Available | Key |
 |---|---|---|
-| EPL | ✅ | Off-season — using demo fixtures until 21 Aug |
-| La Liga | ✅ | Off-season — using demo fixtures until 15 Aug |
-| World Cup 2026 | ✅ | Live — knockout stage, ends 19 Jul |
-| NFL | ✅ | Off-season — using demo fixtures until 9 Sep |
-| F1 | ✅ | Demo fixtures only — not on Odds API |
-| ATP Wimbledon | ✅ | Live — ends 12 Jul. Rename after |
-| WTA Wimbledon | ✅ | Live — ends 12 Jul. Rename after |
-| The Open (PGA) | ✅ | Live — ends 19 Jul. Rename after |
-| NBA | ❌ | Inactive — activate Oct 2026 |
-| Champions League | ❌ | Inactive — activate Aug 2026 |
-| Six Nations | ❌ | Inactive — activate Jan 2027 |
-| IPL | ❌ | Inactive — activate Feb 2027 |
-| MotoGP | ❌ | Inactive — not on Odds API, defer |
-| NASCAR | ❌ | Inactive — not on Odds API, defer |
-| Rugby World Cup | ❌ | Inactive — next tournament Sep 2027 |
-| Premiership Rugby | ❌ | Inactive — add to backlog |
+| EPL | ✅ | `soccer_epl` |
+| La Liga | ✅ | `soccer_spain_la_liga` |
+| NFL | ✅ | `americanfootball_nfl` |
+| World Cup | ✅ | `soccer_fifa_world_cup` |
+| ATP Wimbledon | ✅ | `tennis_atp_wimbledon` |
+| WTA Wimbledon | ✅ | `tennis_wta_wimbledon` |
+| The Open (golf) | ✅ | `golf_the_open_championship_winner` |
+| Champions League | ⚠️ | Verify — likely `soccer_uefa_champs_league` |
+| NBA | ⚠️ | Verify — likely `basketball_nba` |
+| Six Nations | ⚠️ | Verify when season approaches |
+| Premiership Rugby | ⚠️ | Verify when season approaches |
+| IPL | ⚠️ | Verify — likely `cricket_ipl` |
+| F1 | ❌ | Not available |
+| MotoGP | ❌ | Not available |
+| NASCAR | ❌ | Not available |
