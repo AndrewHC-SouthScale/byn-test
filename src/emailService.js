@@ -1,37 +1,22 @@
 // emailService.js — BYN transactional email via Resend
-// Sends from noreply@bynapp.online
-// All emails are sent server-side via the Resend API
+// Emails are sent via /api/send-email (Vercel serverless function)
+// which calls Resend server-side, keeping the API key secure
 
-const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY
 const FROM_ADDRESS = 'BYN <noreply@bynapp.online>'
 const SUPPORT_ADDRESS = 'support@bynapp.online'
-const BASE_URL = 'https://api.resend.com/emails'
 
 // ── Base send function ────────────────────────────────────────────────────────
 async function sendEmail({ to, subject, html }) {
-  if (!RESEND_API_KEY) {
-    console.warn('Resend API key not set — email not sent')
-    return null
-  }
-
   try {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to: [to],
-        subject,
-        html,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, html }),
     })
 
     if (!response.ok) {
       const error = await response.json()
-      console.error('Resend error:', error)
+      console.error('Email send error:', error)
       return null
     }
 
