@@ -797,27 +797,33 @@ export default function PlatformMock() {
           }
         }
       }
-
-      // Send round settled email
-      try {
-        const profile = await supabase.from('profiles').select('display_name').eq('id', session.user.id).maybeSingle();
-        const displayName = profile?.data?.display_name || 'Player';
-        const myRank = seasonByUser.findIndex((r) => r.name === displayName) + 1 || 1;
-        await sendRoundSettledEmail({
-          to: session.user.email,
-          displayName,
-          competitionName: comp.name,
-          roundNumber: compData[activeCompKey].round,
-          endingBalance: myEndingBalance,
-          payout: myEndingBalance - compData[activeCompKey].balance,
-          rank: myRank,
-          totalPlayers: seasonByUser.length,
-        });
-      } catch (err) {
-        console.error('Error sending settlement email:', err);
-      }
     } catch (err) {
       console.error('Error persisting after settlement:', err);
+    }
+
+    // Send round settled email — outside main try/catch so it always fires
+    try {
+      const { data: { session: emailSession } } = await supabase.auth.getSession();
+      if (emailSession) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', emailSession.user.id)
+          .maybeSingle();
+        const displayName = profileData?.display_name || 'Player';
+        await sendRoundSettledEmail({
+          to: emailSession.user.email,
+          displayName,
+          competitionName: comp.name,
+          roundNumber: compData[activeCompKey]?.round || 1,
+          endingBalance: myEndingBalance,
+          payout: myEndingBalance - (compData[activeCompKey]?.balance || 0),
+          rank: 1,
+          totalPlayers: 1,
+        });
+      }
+    } catch (err) {
+      console.error('Error sending settlement email:', err);
     }
   }
 
