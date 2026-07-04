@@ -3,6 +3,7 @@ import { supabase } from "./supabase.js";
 import { ensureProfile, isDisplayNameTaken } from "./profileService.js";
 import { loadUserState, persistBalance, applyRoundTopup, resetSeasonBalances, initRoundMarketsInDB, saveBetToDB, settleBetsInDB } from "./persistenceManager.js";
 import { fetchUpcomingFixtures } from "./oddsService.js";
+import { sendWelcomeEmail, sendRoundSettledEmail, sendLockoutReminderEmail } from "./emailService.js";
 import { Trophy, Lock, CheckCircle2, AlertTriangle, ChevronRight, Award, Flame, LogIn, Wallet, CalendarClock, Eye, User, HelpCircle } from "lucide-react";
 
 // ---------- LMSR core (outcome-count agnostic) ----------
@@ -397,6 +398,12 @@ export default function PlatformMock() {
         return updated;
       });
     }
+    // Send welcome email
+    try {
+      await sendWelcomeEmail({ to: session.user.email, displayName: userName });
+    } catch (err) {
+      console.error('Error sending welcome email:', err);
+    }
     setScreen("app");
   }
   const [userName, setUserName] = useState("");
@@ -789,6 +796,25 @@ export default function PlatformMock() {
             await supabase.from('bets').upsert(updates);
           }
         }
+      }
+
+      // Send round settled email
+      try {
+        const profile = await supabase.from('profiles').select('display_name').eq('id', session.user.id).maybeSingle();
+        const displayName = profile?.data?.display_name || 'Player';
+        const myRank = seasonByUser.findIndex((r) => r.name === displayName) + 1 || 1;
+        await sendRoundSettledEmail({
+          to: session.user.email,
+          displayName,
+          competitionName: comp.name,
+          roundNumber: compData[activeCompKey].round,
+          endingBalance: myEndingBalance,
+          payout: myEndingBalance - compData[activeCompKey].balance,
+          rank: myRank,
+          totalPlayers: seasonByUser.length,
+        });
+      } catch (err) {
+        console.error('Error sending settlement email:', err);
       }
     } catch (err) {
       console.error('Error persisting after settlement:', err);
