@@ -75,16 +75,7 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 ## 🛠️ Internal admin & reporting
 
-- [ ] **Admin reporting dashboard** — internal-only page (not linked anywhere public) showing key platform metrics. Suggested location: `southscale.co.uk/admin` or `bynapp.online/admin` — both work since neither will be linked publicly. Should be password protected (simple hardcoded password or Vercel password protection is fine for internal use). Suggested metrics to include:
-  - **Users** — total registered, new this week/month, active (placed a bet in last 30 days), inactive
-  - **Competitions** — active users per competition, bets placed per round, average stake
-  - **Leagues** — total private leagues, members per league, most active leagues
-  - **Emails** — emails sent (via Resend dashboard API)
-  - **Engagement** — ad boost views this week, referrals used
-  - **Platform health** — rounds currently open, rounds settled this week, any unsettled bets older than 48hrs
-  - All data pulled directly from Supabase via a read-only service role key (not the anon key)
-  - Built as a standalone HTML page or simple React app, NOT part of byn-test
-  - Consider Vercel Password Protection (available on Pro plan) or a simple login check before exposing data
+- [x] **Admin reporting dashboard** — live at southscale.co.uk/admin. Password protected. Shows users, bets, competitions, rounds, leagues, engagement, and platform health. Data pulled from Supabase via service role key through Vercel serverless function. Not linked publicly.
 
 - [ ] **Remove demo simulator buttons** — "Simulate results", "Advance to lockout" etc. before go-live
 - [ ] **Landing page for bynapp.online** — currently serves the app directly; add a proper landing page for organic visitors with download links and screenshots
@@ -149,3 +140,4 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 - [x] Privacy Policy and Terms of Service links added to Profile tab
 - [x] southscale.co.uk legal page routing fixed
 - [x] Live odds API calls reduced — fixtures cached in Supabase, API called once per round per competition only
+- [x] Admin reporting dashboard live at southscale.co.uk/admin
