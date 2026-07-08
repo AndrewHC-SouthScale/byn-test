@@ -457,8 +457,44 @@ export default function PlatformMock() {
   const AD_BOOST_MAX = 1000;
   const [adBoostTotal, setAdBoostTotal] = useState(0);
   // Tracks Supabase round IDs and outcome ID maps per competition
-  // { [compKey]: { roundId, dbOutcomeMap } }
   const [dbRoundState, setDbRoundState] = useState({});
+  // Account deletion state
+  const [deletionScheduledFor, setDeletionScheduledFor] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  async function handleRequestDeletion() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const googleProviderId = session.user.user_metadata?.provider_id || null;
+    const response = await fetch('/api/request-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: session.user.id,
+        email: session.user.email,
+        displayName: userName,
+        googleProviderId,
+      }),
+    });
+    const data = await response.json();
+    if (data.success) {
+      setDeletionScheduledFor(data.scheduledFor);
+      setShowDeleteConfirm(false);
+      await supabase.auth.signOut();
+    }
+  }
+
+  async function handleCancelDeletion() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const response = await fetch('/api/cancel-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.user.id }),
+    });
+    const data = await response.json();
+    if (data.success) setDeletionScheduledFor(null);
+  }
 
   // Live fixtures loaded from The Odds API
   // { [compKey]: [{ name, outcomes, probabilities, kickoff, externalId }] }
@@ -1171,6 +1207,12 @@ export default function PlatformMock() {
             simulateFriendJoining={simulateFriendJoining}
             copyReferralCode={copyReferralCode}
             copiedCode={copiedCode}
+            deletionScheduledFor={deletionScheduledFor}
+            showDeleteConfirm={showDeleteConfirm}
+            onRequestDelete={() => setShowDeleteConfirm(true)}
+            onCancelDeleteConfirm={() => setShowDeleteConfirm(false)}
+            onDeleteAccount={handleRequestDeletion}
+            onCancelDeletion={handleCancelDeletion}
           />
         )}
 
@@ -1703,7 +1745,7 @@ function HowToPlayScreen() {
   );
 }
 
-function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouriteTeamByComp, FLAG_MAP, baseLeagueSlots, extraLeagueSlots, maxLeagueSlots, adBoostTotal, adBoostMax, adBoostPerView, adBoostCompKey, setAdBoostCompKey, adWatching, watchAd, userReferralCode, referralsEarned, referralRewardComp, setReferralRewardComp, simulateFriendJoining, copyReferralCode, copiedCode }) {
+function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouriteTeamByComp, FLAG_MAP, baseLeagueSlots, extraLeagueSlots, maxLeagueSlots, adBoostTotal, adBoostMax, adBoostPerView, adBoostCompKey, setAdBoostCompKey, adWatching, watchAd, userReferralCode, referralsEarned, referralRewardComp, setReferralRewardComp, simulateFriendJoining, copyReferralCode, copiedCode, deletionScheduledFor, showDeleteConfirm, onRequestDelete, onCancelDeleteConfirm, onDeleteAccount, onCancelDeletion }) {
   const myGroups = groups.filter((g) => g.members.includes(userName));
   const leaguesUsed = myGroups.length;
   const extraPurchased = extraLeagueSlots; // in packs of 3
@@ -1916,6 +1958,58 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
           No leagues yet — head to the Leagues tab to create or join one.
         </div>
       )}
+
+      {/* Legal links */}
+      <div style={{ ...card, marginTop: 16 }}>
+        <div className="sg" style={{ fontSize: 11, fontWeight: 700, color: "#7FBFA0", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Legal</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <a href="https://southscale.co.uk/legal/byn-privacy" target="_blank" rel="noopener" style={{ fontSize: 13, color: "#7FBFA0", textDecoration: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Privacy Policy</span><span style={{ color: "#3a5a4a" }}>→</span>
+          </a>
+          <div style={{ height: 1, background: "#1c5f3f" }} />
+          <a href="https://southscale.co.uk/legal/byn-terms" target="_blank" rel="noopener" style={{ fontSize: 13, color: "#7FBFA0", textDecoration: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Terms of Service</span><span style={{ color: "#3a5a4a" }}>→</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Delete account */}
+      <div style={{ ...card, marginTop: 16, border: "1px solid #3a1a1a" }}>
+        <div className="sg" style={{ fontSize: 11, fontWeight: 700, color: "#C75146", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Danger zone</div>
+        {deletionScheduledFor ? (
+          <div>
+            <p style={{ fontSize: 13, color: "#D9E5DE", marginBottom: 12 }}>
+              Your account is scheduled for deletion on <strong style={{ color: "#E0998F" }}>{new Date(deletionScheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+            </p>
+            <button onClick={onCancelDeletion} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #2FA86C", background: "transparent", color: "#2FA86C", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              Cancel deletion request
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: 13, color: "#9DBFAF", marginBottom: 12 }}>
+              Deleting your account will permanently remove all your data after a 60-day cooling-off period. This cannot be undone.
+            </p>
+            {showDeleteConfirm ? (
+              <div>
+                <p style={{ fontSize: 13, color: "#E0998F", marginBottom: 12 }}>Are you sure? Your account will be deleted 60 days from today. You'll receive a confirmation email.</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={onDeleteAccount} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: "#C75146", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    Yes, delete my account
+                  </button>
+                  <button onClick={onCancelDeleteConfirm} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #1c5f3f", background: "transparent", color: "#7FBFA0", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    Keep my account
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={onRequestDelete} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #3a1a1a", background: "#1a0a0a", color: "#C75146", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Delete account
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

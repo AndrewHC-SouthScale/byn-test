@@ -191,7 +191,91 @@ export async function sendLockoutReminderEmail({ to, displayName, competitionNam
   })
 }
 
-// ── 3. Round settled ─────────────────────────────────────────────────────────
+// ── 4. Account deletion confirmation ─────────────────────────────────────────
+export async function sendDeletionConfirmationEmail({ to, displayName, scheduledFor }) {
+  const deletionDate = new Date(scheduledFor).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  })
+
+  const html = emailWrapper(`
+    <h1 style="font-size:22px; font-weight:700; margin:0 0 6px; color:#F4F7F2;">
+      Account deletion requested
+    </h1>
+    <p style="font-size:15px; color:#9DBFAF; margin:0 0 24px;">
+      Hi ${displayName} — we've received your request to delete your BYN account.
+    </p>
+
+    <div style="background:#2B1E15; border:1px solid #7a5d28; border-radius:12px; padding:24px; margin-bottom:24px;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="padding:6px 0; font-size:14px; color:#9DBFAF;">Deletion requested</td>
+          <td style="padding:6px 0; font-size:14px; color:#F4F7F2; text-align:right; font-weight:600;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; font-size:14px; color:#9DBFAF;">Account deleted on</td>
+          <td style="padding:6px 0; font-size:14px; color:#E0998F; text-align:right; font-weight:700;">${deletionDate}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size:14px; color:#D9E5DE; margin:0 0 14px;">
+      Your account will remain active until <strong style="color:#F4F7F2;">${deletionDate}</strong>. You can continue using BYN during this period.
+    </p>
+    <p style="font-size:14px; color:#D9E5DE; margin:0 0 14px;">
+      If you change your mind, you can cancel the deletion request from your profile at any time before this date.
+    </p>
+    <p style="font-size:14px; color:#D9E5DE; margin:0 0 24px;">
+      After ${deletionDate}, all your personal data will be permanently deleted from our systems in line with our Privacy Policy. Your Google account will not be able to create a new BYN account for 60 days from the deletion date.
+    </p>
+
+    <a href="https://bynapp.online" style="display:inline-block; background:#2FA86C; color:#0A1F1A; font-weight:700; font-size:15px; padding:14px 28px; border-radius:10px; text-decoration:none;">
+      Cancel deletion request →
+    </a>
+
+    <p style="margin:16px 0 0; font-size:13px; color:#5E8775;">
+      If you didn't request this, contact us immediately at <a href="mailto:${SUPPORT_ADDRESS}" style="color:#7FBFA0;">${SUPPORT_ADDRESS}</a>.
+    </p>
+  `)
+
+  return sendEmail({
+    to,
+    subject: `Your BYN account is scheduled for deletion on ${deletionDate}`,
+    html,
+  })
+}
+
+// ── 5. Account deletion reminder (sent before 60 days expires) ────────────────
+export async function sendDeletionReminderEmail({ to, displayName, scheduledFor }) {
+  const deletionDate = new Date(scheduledFor).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  })
+
+  const html = emailWrapper(`
+    <h1 style="font-size:22px; font-weight:700; margin:0 0 6px; color:#F4F7F2;">
+      ⚠️ Your account is being deleted in 7 days
+    </h1>
+    <p style="font-size:15px; color:#9DBFAF; margin:0 0 24px;">
+      Hi ${displayName} — this is a reminder that your BYN account is scheduled to be permanently deleted on <strong style="color:#E0998F;">${deletionDate}</strong>.
+    </p>
+
+    <p style="font-size:14px; color:#D9E5DE; margin:0 0 14px;">
+      After this date, all your data — including your profile, bets, and standings — will be permanently removed from our systems.
+    </p>
+    <p style="font-size:14px; color:#D9E5DE; margin:0 0 24px;">
+      If you've changed your mind, you can cancel the deletion request from your profile before the deadline.
+    </p>
+
+    <a href="https://bynapp.online" style="display:inline-block; background:#2FA86C; color:#0A1F1A; font-weight:700; font-size:15px; padding:14px 28px; border-radius:10px; text-decoration:none;">
+      Cancel deletion and keep my account →
+    </a>
+  `)
+
+  return sendEmail({
+    to,
+    subject: `⚠️ Your BYN account is being deleted on ${deletionDate}`,
+    html,
+  })
+}
 export async function sendRoundSettledEmail({ to, displayName, competitionName, roundNumber, endingBalance, payout, rank, totalPlayers }) {
   const won = payout > 0
   const emoji = rank === 1 ? '🏆' : rank <= 3 ? '🥉' : won ? '✅' : '📊'
