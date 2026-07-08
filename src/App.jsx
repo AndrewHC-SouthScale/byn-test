@@ -319,13 +319,9 @@ export default function PlatformMock() {
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [activeGroupId, setActiveGroupId] = useState(null);
-  const BASE_LEAGUE_SLOTS = 3;
   const [extraLeagueSlots] = useState(0);
   const MAX_GROUPS_PER_USER = BASE_LEAGUE_SLOTS + extraLeagueSlots;
-  const MAX_MEMBERS = 100;
 
-  const AD_BOOST_PER_VIEW = 50;
-  const AD_BOOST_MAX = 1000;
   const [adBoostTotal, setAdBoostTotal] = useState(0);
   // Tracks Supabase round IDs and outcome ID maps per competition
   const [dbRoundState, setDbRoundState] = useState({});
