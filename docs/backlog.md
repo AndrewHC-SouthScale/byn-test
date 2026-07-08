@@ -19,10 +19,17 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 ---
 
-## 🟤 API & performance
+## 📊 Data models & probability
+
+- [ ] **MotoGP probability model** — similar to F1 model. Research free MotoGP data API (motogp.com/api or similar). Components: current season championship points (50%), previous season standings (30%), circuit/track history (20%). Only needed when MotoGP is activated — The Odds API doesn't cover it.
+- [ ] **NASCAR probability model** — track history is especially important in NASCAR (drivers have very different strengths by track type: superspeedways, short tracks, road courses). Research free NASCAR data API. Components: current season points (40%), previous season (20%), track-specific history (40% — higher weight than other sports).
+- [ ] **NBA probability model** — only needed if The Odds API doesn't cover NBA when activated in Oct 2026. BallDontLie API (balldontlie.io) is free and covers NBA standings and game results. Components: current season win % (50%), home/away record (20%), head-to-head recent form (30%).
+- [ ] **Sports not on The Odds API** — EPL, La Liga, World Cup, NFL, ATP, WTA, The Open, Champions League are all covered by The Odds API with de-vigged bookmaker probabilities — no model needed, bookmaker odds are better than anything we'd build. Only build models for sports The Odds API doesn't cover (F1 ✅, MotoGP, NASCAR, potentially rugby/cricket leagues).
+- [ ] **Six Nations / Premiership Rugby probability model** — research free rugby data API. Components: current tournament standings (50%), historical H2H between these two teams (30%), home advantage (20%).
+- [ ] **IPL probability model** — research free cricket API (cricbuzz, cricketdata.org). Components: current tournament form (50%), venue/pitch history (30%), team H2H (20%).
 
 - [x] **Reduce live odds API calls** — fixtures now cached in Supabase `round_fixtures` table. API called once per competition per round only. Subsequent loads (page refresh, re-navigation) read from cache. Cache valid for 24 hours. API skipped entirely if round already seeded (`cd.liveSeeded === true`).
-- [x] **F1 alternative odds source** — Using OpenF1 (free, no API key) via `/api/f1-fixtures` serverless function. Provides real race name, circuit, location and date for the next upcoming Grand Prix. Driver probabilities hardcoded from 2026 championship standings — update `DRIVERS_2026` in `api/f1-fixtures.js` as season progresses. API-Sports free plan does not include current season data. OpenF1 URL: `https://api.openf1.org/v1/sessions?year=2026&session_type=Race`
+- [x] **F1 alternative odds source** — live at bynapp.online/app under Motorsport → F1. Uses OpenF1 (free, no API key) for real race name, circuit, location and kickoff time. Top 8 drivers shown with championship-based probabilities. Update `DRIVERS_2026` in `api/f1-fixtures.js` as season progresses.
 
 ---
 
