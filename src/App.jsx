@@ -255,6 +255,7 @@ export default function PlatformMock() {
     loadLiveFixtures("atp");
     loadLiveFixtures("wta");
     loadLiveFixtures("pga");
+    loadLiveFixtures("f1");
   }, []);
 
   async function signInWithGoogle() {
@@ -829,6 +830,8 @@ export default function PlatformMock() {
     // Clear DB round state and fixture cache so new round gets fresh data
     setDbRoundState((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
     setLiveFixtures((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
+    // Re-fetch live fixtures for the new round
+    setTimeout(() => loadLiveFixtures(activeCompKey), 100);
 
     // If season is resetting, zero out the wallet and archive standings in Supabase
     if (newSeasonStarting) {
