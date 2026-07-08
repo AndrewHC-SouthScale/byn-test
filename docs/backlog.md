@@ -78,7 +78,7 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 - [x] **Admin reporting dashboard** — live at southscale.co.uk/admin. Password protected. Shows users, bets, competitions, rounds, leagues, engagement, and platform health. Data pulled from Supabase via service role key through Vercel serverless function. Not linked publicly.
 
 - [ ] **Remove demo simulator buttons** — "Simulate results", "Advance to lockout" etc. before go-live
-- [ ] **Landing page for bynapp.online** — currently serves the app directly; add a proper landing page for organic visitors with download links and screenshots
+- [x] **Landing page for bynapp.online** — live at bynapp.online root. App served at bynapp.online/app. Includes phone mockup, how it works, sports list, features, and App Store/Google Play placeholders.
 - [ ] **Kickoff time display** — show match kickoff time on each fixture card
 - [ ] **Bet history tab** — view all past bets within a competition, not just current round
 - [ ] **Onboarding tour** — guided first-time user experience (highlight key features on first login)
