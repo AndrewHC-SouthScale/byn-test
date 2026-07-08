@@ -50,6 +50,8 @@ import { CATEGORIES, COMPETITIONS, BOTS, COUNTRIES, FLAG_MAP, MIN_COMMIT_FRACTIO
 } from "./constants.js";
 
 
+function probsToQ(probs, b) { return probs.map((p) => b * Math.log(Math.max(p, 0.001))); }
+
 function roundLabel(comp, roundNum) {
   if (comp.format === "outright") return comp.roundNames[(roundNum - 1) % comp.roundNames.length];
   return `${comp.cadenceLabel} ${roundNum}`;
