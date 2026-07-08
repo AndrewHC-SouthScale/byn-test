@@ -21,7 +21,7 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 ## 🟤 API & performance
 
-- [ ] **Reduce live odds API calls** — the Odds API should only be called once per round at round start, to fetch fixtures and seed opening odds into the LMSR. After that, all pricing is driven by user bets. Currently the API is disabled during testing (`return []` in `oddsService.js`) but when re-enabled, add a check: only fetch if the current round has no bets placed yet and has not already been seeded (`cd.liveSeeded === false`). Cache the result in Supabase so re-fetching on page refresh doesn't cost API credits.
+- [x] **Reduce live odds API calls** — fixtures now cached in Supabase `round_fixtures` table. API called once per competition per round only. Subsequent loads (page refresh, re-navigation) read from cache. Cache valid for 24 hours. API skipped entirely if round already seeded (`cd.liveSeeded === true`).
 
 ---
 
@@ -70,8 +70,8 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 ## 🔵 UI / UX
 
-- [ ] **Slow initial load** — the app takes a few seconds to load on first visit due to the large bundle size (currently ~430KB gzipped). Investigate code splitting (lazy loading competitions, screens), moving heavy constants (team pools, bot data) to a separate file, and enabling Vercel edge caching. Target: under 2 seconds on a mobile connection.
-- [ ] **Round nuts to whole numbers** — all nut values throughout the app (balances, stakes, payouts, shares) should display as whole numbers. Currently some values show decimal places due to LMSR share calculations. Apply `Math.round()` consistently at the display layer — not the calculation layer (keep full precision internally, round only when rendering to the UI).
+- [ ] **Slow initial load** — Vercel edge cache headers added (repeat visits now instant). Bundle is 125KB gzipped. Further reduction options: replace `lucide-react` with inline SVGs (~50KB saving), or replace Supabase JS client with direct fetch calls (~150KB saving). Defer until user feedback indicates load time is a real problem.
+- [x] **Round nuts to whole numbers** — `Math.round()` already applied consistently throughout the display layer. Confirmed no decimal values showing in UI.
 
 ## 🛠️ Internal admin & reporting
 
@@ -148,3 +148,4 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 - [x] Delete Account button on Profile tab — 60-day cooling-off, confirmation email, cancel option
 - [x] Privacy Policy and Terms of Service links added to Profile tab
 - [x] southscale.co.uk legal page routing fixed
+- [x] Live odds API calls reduced — fixtures cached in Supabase, API called once per round per competition only
