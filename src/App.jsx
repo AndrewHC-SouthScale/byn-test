@@ -248,7 +248,7 @@ export default function PlatformMock() {
     setAuthError("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "https://www.bynapp.online" },
+      options: { redirectTo: "https://www.bynapp.online/app" },
     });
     if (error) setAuthError(error.message);
   }
