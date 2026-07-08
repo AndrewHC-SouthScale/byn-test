@@ -22,6 +22,11 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 ## 🟤 API & performance
 
 - [x] **Reduce live odds API calls** — fixtures now cached in Supabase `round_fixtures` table. API called once per competition per round only. Subsequent loads (page refresh, re-navigation) read from cache. Cache valid for 24 hours. API skipped entirely if round already seeded (`cd.liveSeeded === true`).
+- [ ] **F1 alternative odds source** — F1 is not available on The Odds API. Investigate alternatives:
+  - **API-Sports** (api-sports.io) — covers Formula 1 race results and standings. Has a free tier (100 req/day). Would need a new `VITE_API_SPORTS_KEY` env var and a new fetch function in `oddsService.js`.
+  - **Sportradar** — comprehensive motorsport coverage including F1 qualifying and race odds, but more expensive and complex to integrate.
+  - **Recommended starting point:** API-Sports free tier for race fixture data (to get real race names and dates), even if outright odds aren't available — better than the current hardcoded `F1_ROUNDS` array. Wire race winner odds separately if a bookmaker API becomes available.
+  - Sign up at api-sports.io, add `VITE_API_SPORTS_KEY` to Vercel env vars, add F1 fetch function to `oddsService.js` mapping to `f1` competition key.
 
 ---
 
@@ -79,7 +84,7 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 - [ ] **Remove demo simulator buttons** — "Simulate results", "Advance to lockout" etc. before go-live
 - [x] **Landing page for bynapp.online** — live at bynapp.online root. App served at bynapp.online/app. Includes phone mockup, how it works, sports list, features, and App Store/Google Play placeholders.
-- [ ] **Kickoff time display** — show match kickoff time on each fixture card
+- [ ] **Kickoff time display** — `formatKickoff()` function built and wired into market cards (betting and settled stages). Shows "Today 20:00", "Tomorrow 15:00", "Sat 12 Jul 17:30" etc. **Needs verification once Odds API is re-enabled** — demo fixtures have no kickoff data so times only appear with live fixtures.
 - [ ] **Bet history tab** — view all past bets within a competition, not just current round
 - [ ] **Onboarding tour** — guided first-time user experience (highlight key features on first login)
 - [ ] **Dark/light mode** — currently dark only
