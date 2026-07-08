@@ -60,29 +60,32 @@ export default async function handler(req, res) {
     const allRaces = await apiSports(`/races?season=${SEASON}`)
 
     if (!allRaces?.length) {
-      // 2026 data may not be available — check what seasons exist and try the latest
-      const seasons = await apiSports('/seasons')
-      const latestSeason = seasons ? Math.max(...seasons.map(Number).filter(Boolean)) : null
-      
-      if (latestSeason && latestSeason !== SEASON) {
-        const fallbackRaces = await apiSports(`/races?season=${latestSeason}`)
-        if (fallbackRaces?.length) {
-          // Use latest available season's races
-          const now = new Date()
-          const upcoming = fallbackRaces
-            .filter(r => r.date && new Date(r.date) >= now)
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-          
-          if (upcoming.length) {
-            // Continue with upcoming from fallback season
-            return buildResponse(res, upcoming[0], latestSeason)
-          }
-          // Season finished — return last race as reference
-          const last = fallbackRaces[fallbackRaces.length - 1]
-          return buildResponse(res, last, latestSeason)
+      // Probe multiple endpoints to find what's available
+      const [
+        standings,
+        circuits,
+        grandsPrix,
+        racesWithType,
+      ] = await Promise.all([
+        apiSports(`/standings/drivers?season=${SEASON}`),
+        apiSports(`/circuits?season=${SEASON}`),
+        apiSports(`/grands-prix?season=${SEASON}`),
+        apiSports(`/races?season=${SEASON}&type=Race`),
+      ])
+
+      return res.status(200).json({
+        race: null,
+        drivers: [],
+        debug: {
+          msg: 'probing endpoints',
+          standings_count: standings?.length ?? 'null',
+          circuits_count: circuits?.length ?? 'null',
+          grandsPrix_count: grandsPrix?.length ?? 'null',
+          racesWithType_count: racesWithType?.length ?? 'null',
+          circuits_sample: circuits?.slice(0, 2) ?? null,
+          grandsPrix_sample: grandsPrix?.slice(0, 2) ?? null,
         }
-      }
-      return res.status(200).json({ race: null, drivers: [], debug: `no races for ${SEASON}, latest season: ${latestSeason}` })
+      })
     }
 
     // Find the next upcoming race
