@@ -74,6 +74,19 @@ function newRoundMarkets(comp, roundNum) {
   });
 }
 
+// Format kickoff time for display
+function formatKickoff(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((d - now) / (1000 * 60 * 60 * 24));
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 0) return `Today ${time}`;
+  if (diffDays === 1) return `Tomorrow ${time}`;
+  if (diffDays < 7) return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${time}`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ` ${time}`;
+}
+
 // Convert live fixtures from The Odds API into BYN market format
 function liveFixturesToMarkets(fixtures, comp) {
   if (!fixtures?.length) return null;
@@ -1272,7 +1285,12 @@ export default function PlatformMock() {
                         const wide = m.outcomes.length > 4;
                         return (
                           <div key={m.id} style={{ marginBottom: 10, padding: 10, borderRadius: 10, border: `1.5px solid ${selMarket === mi ? "#2FA86C" : "#16352A"}`, background: "#0F2920" }}>
-                            <div className="sg" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, cursor: "pointer" }} onClick={() => setSelMarket(mi)}>{m.name}</div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, cursor: "pointer" }} onClick={() => setSelMarket(mi)}>
+                              <div className="sg" style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
+                              {formatKickoff(m.kickoff) && (
+                                <div style={{ fontSize: 10, color: "#7FBFA0", fontWeight: 500, whiteSpace: "nowrap", marginLeft: 8, marginTop: 2 }}>🕐 {formatKickoff(m.kickoff)}</div>
+                              )}
+                            </div>
                             <div style={{ display: "flex", flexDirection: wide ? "column" : "row", gap: 6 }}>
                               {m.outcomes.map((label, oi) => (
                                 <button
@@ -1354,7 +1372,10 @@ export default function PlatformMock() {
                         const betsOnMarket = cd.bets.filter((b) => b.marketId === m.id);
                         return (
                           <div key={m.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #16352A" }}>
-                            <div className="sg" style={{ fontSize: 13, fontWeight: 600, color: "#9DBFAF", marginBottom: 6 }}>{m.name}</div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <div className="sg" style={{ fontSize: 13, fontWeight: 600, color: "#9DBFAF" }}>{m.name}</div>
+                              {formatKickoff(m.kickoff) && <div style={{ fontSize: 10, color: "#5E8775" }}>🕐 {formatKickoff(m.kickoff)}</div>}
+                            </div>
                             {m.postponed ? (
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 10px", borderRadius: 8, background: "#2B1E15", border: "1px solid #7a5d28" }}>
                                 <span style={{ fontSize: 12, color: "#D9A441" }}>Postponed — bets refunded</span>
