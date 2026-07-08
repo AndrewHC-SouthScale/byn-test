@@ -22,7 +22,7 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 ## 🟤 API & performance
 
 - [x] **Reduce live odds API calls** — fixtures now cached in Supabase `round_fixtures` table. API called once per competition per round only. Subsequent loads (page refresh, re-navigation) read from cache. Cache valid for 24 hours. API skipped entirely if round already seeded (`cd.liveSeeded === true`).
-- [x] **F1 alternative odds source** — API-Sports integrated via `/api/f1-fixtures` serverless function. Provides real race name, circuit, date and driver list. Driver probabilities estimated from championship standings points. `API_SPORTS_KEY` stored in Vercel env vars. Will activate with Odds API when testing is complete.
+- [x] **F1 alternative odds source** — Using OpenF1 (free, no API key) via `/api/f1-fixtures` serverless function. Provides real race name, circuit, location and date for the next upcoming Grand Prix. Driver probabilities hardcoded from 2026 championship standings — update `DRIVERS_2026` in `api/f1-fixtures.js` as season progresses. API-Sports free plan does not include current season data. OpenF1 URL: `https://api.openf1.org/v1/sessions?year=2026&session_type=Race`
 
 ---
 
