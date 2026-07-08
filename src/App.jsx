@@ -91,7 +91,7 @@ function formatKickoff(iso) {
 function liveFixturesToMarkets(fixtures, comp) {
   if (!fixtures?.length) return null;
 
-  // Outright market (F1, PGA etc) — single market with full field
+  // Outright market (F1, PGA etc) — single market with full field, no slice limit
   if (fixtures[0]?.format === 'outright') {
     const f = fixtures[0];
     return [{
@@ -105,7 +105,7 @@ function liveFixturesToMarkets(fixtures, comp) {
     }];
   }
 
-  // H2H markets (football, NFL etc) — one market per fixture
+  // H2H markets (football, NFL etc) — one market per fixture, up to 10
   return fixtures.slice(0, 10).map((f, i) => ({
     id: i,
     name: f.name,

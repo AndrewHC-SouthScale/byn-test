@@ -3,16 +3,28 @@
 // Driver probabilities estimated from hardcoded 2026 championship standings
 
 // 2026 driver field with estimated championship-based probabilities
-// Update these as the season progresses
+// All 20 race drivers — update as season progresses
 const DRIVERS_2026 = [
-  { name: 'NOR', fullName: 'Lando Norris',       team: 'McLaren',          probability: 0.22 },
-  { name: 'VER', fullName: 'Max Verstappen',      team: 'Red Bull',         probability: 0.19 },
-  { name: 'PIA', fullName: 'Oscar Piastri',       team: 'McLaren',          probability: 0.16 },
-  { name: 'LEC', fullName: 'Charles Leclerc',     team: 'Ferrari',          probability: 0.13 },
-  { name: 'ANT', fullName: 'Kimi Antonelli',      team: 'Mercedes',         probability: 0.10 },
-  { name: 'RUS', fullName: 'George Russell',      team: 'Mercedes',         probability: 0.08 },
-  { name: 'HAM', fullName: 'Lewis Hamilton',      team: 'Ferrari',          probability: 0.07 },
-  { name: 'SAI', fullName: 'Carlos Sainz',        team: 'Williams',         probability: 0.05 },
+  { name: 'NOR', fullName: 'Lando Norris',           team: 'McLaren',             probability: 0.20 },
+  { name: 'VER', fullName: 'Max Verstappen',          team: 'Red Bull',            probability: 0.17 },
+  { name: 'PIA', fullName: 'Oscar Piastri',           team: 'McLaren',             probability: 0.14 },
+  { name: 'LEC', fullName: 'Charles Leclerc',         team: 'Ferrari',             probability: 0.11 },
+  { name: 'ANT', fullName: 'Kimi Antonelli',          team: 'Mercedes',            probability: 0.09 },
+  { name: 'RUS', fullName: 'George Russell',          team: 'Mercedes',            probability: 0.07 },
+  { name: 'HAM', fullName: 'Lewis Hamilton',          team: 'Ferrari',             probability: 0.06 },
+  { name: 'SAI', fullName: 'Carlos Sainz',            team: 'Williams',            probability: 0.04 },
+  { name: 'ALB', fullName: 'Alexander Albon',         team: 'Williams',            probability: 0.03 },
+  { name: 'HUL', fullName: 'Nico Hülkenberg',        team: 'Sauber',              probability: 0.02 },
+  { name: 'TSU', fullName: 'Yuki Tsunoda',            team: 'Red Bull',            probability: 0.02 },
+  { name: 'GAS', fullName: 'Pierre Gasly',            team: 'Alpine',              probability: 0.01 },
+  { name: 'OCO', fullName: 'Esteban Ocon',            team: 'Haas',                probability: 0.01 },
+  { name: 'STR', fullName: 'Lance Stroll',            team: 'Aston Martin',        probability: 0.01 },
+  { name: 'ALO', fullName: 'Fernando Alonso',         team: 'Aston Martin',        probability: 0.01 },
+  { name: 'LAW', fullName: 'Liam Lawson',             team: 'Racing Bulls',        probability: 0.01 },
+  { name: 'HAD', fullName: 'Isack Hadjar',            team: 'Racing Bulls',        probability: 0.00 },
+  { name: 'BEA', fullName: 'Oliver Bearman',          team: 'Haas',                probability: 0.00 },
+  { name: 'DOO', fullName: 'Jack Doohan',             team: 'Alpine',              probability: 0.00 },
+  { name: 'BOT', fullName: 'Valtteri Bottas',         team: 'Sauber',              probability: 0.00 },
 ]
 
 export default async function handler(req, res) {
@@ -49,6 +61,13 @@ export default async function handler(req, res) {
 
     const next = upcoming[0]
 
+    // Normalise probabilities to sum to exactly 1.0
+    const totalProb = DRIVERS_2026.reduce((a, d) => a + d.probability, 0)
+    const normDrivers = DRIVERS_2026.map(d => ({
+      ...d,
+      probability: Math.round((d.probability / totalProb) * 1000) / 1000,
+    }))
+
     return res.status(200).json({
       race: {
         id: next.session_key,
@@ -59,7 +78,7 @@ export default async function handler(req, res) {
         season: next.year,
         round: null,
       },
-      drivers: DRIVERS_2026,
+      drivers: normDrivers,
     })
   } catch (err) {
     console.error('F1 fixtures error:', err)
