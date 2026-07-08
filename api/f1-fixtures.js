@@ -4,12 +4,15 @@
 const BASE = 'https://v1.formula-1.api-sports.io'
 const SEASON = 2026
 
-async function apiSports(path) {
+async function apiSportsRaw(path) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'x-apisports-key': process.env.API_SPORTS_KEY },
   })
-  const data = await res.json()
-  // API-Sports wraps results in { response: [...] }
+  return res.json()
+}
+
+async function apiSports(path) {
+  const data = await apiSportsRaw(path)
   return data?.response ?? null
 }
 
@@ -60,30 +63,17 @@ export default async function handler(req, res) {
     const allRaces = await apiSports(`/races?season=${SEASON}`)
 
     if (!allRaces?.length) {
-      // Probe multiple endpoints to find what's available
-      const [
-        standings,
-        circuits,
-        grandsPrix,
-        racesWithType,
-      ] = await Promise.all([
-        apiSports(`/standings/drivers?season=${SEASON}`),
-        apiSports(`/circuits?season=${SEASON}`),
-        apiSports(`/grands-prix?season=${SEASON}`),
-        apiSports(`/races?season=${SEASON}&type=Race`),
-      ])
-
+      // Get raw response to see error messages from API-Sports
+      const raw = await apiSportsRaw(`/races?season=${SEASON}`)
       return res.status(200).json({
         race: null,
         drivers: [],
         debug: {
-          msg: 'probing endpoints',
-          standings_count: standings?.length ?? 'null',
-          circuits_count: circuits?.length ?? 'null',
-          grandsPrix_count: grandsPrix?.length ?? 'null',
-          racesWithType_count: racesWithType?.length ?? 'null',
-          circuits_sample: circuits?.slice(0, 2) ?? null,
-          grandsPrix_sample: grandsPrix?.slice(0, 2) ?? null,
+          raw_errors: raw?.errors,
+          raw_results: raw?.results,
+          raw_status: raw?.status,
+          raw_paging: raw?.paging,
+          raw_response_length: raw?.response?.length,
         }
       })
     }
