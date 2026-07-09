@@ -85,8 +85,8 @@ export const TEAM_POOL_IPL = [
 ];
 
 // ── Outright fields ───────────────────────────────────────────────────────────
-export const DRIVER_FIELD  = ["Verstappen","Norris","Leclerc","Hamilton","Russell","Piastri","Sainz","Alonso"];
-export const DRIVER_PROBS  = [0.32, 0.22, 0.13, 0.10, 0.08, 0.07, 0.05, 0.03];
+export const DRIVER_FIELD  = ["Kimi Antonelli","George Russell","Charles Leclerc","Lewis Hamilton","Lando Norris","Oscar Piastri","Max Verstappen","Isack Hadjar","Carlos Sainz","Alexander Albon","Liam Lawson","Arvid Lindblad","Fernando Alonso","Lance Stroll","Esteban Ocon","Oliver Bearman","Nico Hülkenberg","Gabriel Bortoleto","Pierre Gasly","Franco Colapinto","Sergio Pérez","Valtteri Bottas"];
+export const DRIVER_PROBS  = [0.20,0.17,0.12,0.11,0.08,0.07,0.06,0.03,0.03,0.02,0.02,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.00,0.00,0.00];
 export const MOTOGP_FIELD  = ["Bagnaia","M.Marquez","Martin","Bastianini","Di Giannantonio","Binder","Acosta","Vinales"];
 export const MOTOGP_PROBS  = [0.28, 0.25, 0.18, 0.10, 0.07, 0.05, 0.04, 0.03];
 export const NASCAR_FIELD  = ["Hamlin","Larson","Elliott","Byron","Blaney","Truex Jr","Bell","Keselowski"];

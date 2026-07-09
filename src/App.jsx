@@ -438,14 +438,15 @@ export default function PlatformMock() {
   }
 
   // Load live fixtures — checks cache first, only calls API if needed
-  async function loadLiveFixtures(compKey) {
+  // force=true bypasses the liveSeeded check (used after nextRound to avoid stale closure)
+  async function loadLiveFixtures(compKey, force = false) {
     const c = COMPETITIONS.find((x) => x.key === compKey);
     if (!c) return;
 
     const cd = compData[compKey];
 
-    // Already seeded this round — skip entirely
-    if (cd?.liveSeeded) return;
+    // Already seeded this round — skip entirely (unless forced)
+    if (!force && cd?.liveSeeded) return;
 
     setFixturesLoading(true);
     try {
@@ -838,8 +839,8 @@ export default function PlatformMock() {
     // Clear DB round state and fixture cache so new round gets fresh data
     setDbRoundState((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
     setLiveFixtures((prev) => { const n = { ...prev }; delete n[activeCompKey]; return n; });
-    // Re-fetch live fixtures for the new round
-    setTimeout(() => loadLiveFixtures(activeCompKey), 100);
+    // Re-fetch live fixtures for the new round (force=true bypasses stale closure)
+    setTimeout(() => loadLiveFixtures(activeCompKey, true), 300);
 
     // If season is resetting, zero out the wallet and archive standings in Supabase
     if (newSeasonStarting) {
