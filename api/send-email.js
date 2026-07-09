@@ -84,8 +84,8 @@ export default async function handler(req, res) {
 
   // Inject sponsor banner at the marked position (above footer)
   const finalHtml = banner
-    ? html.replace('<!-- SPONSOR_BANNER -->', banner)
-    : html.replace('<!-- SPONSOR_BANNER -->', '')
+    ? html.replace('__SPONSOR_BANNER__', banner)
+    : html.replace('__SPONSOR_BANNER__', '')
 
   try {
     const response = await fetch('https://api.resend.com/emails', {

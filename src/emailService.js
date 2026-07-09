@@ -69,7 +69,7 @@ function emailWrapper(content) {
         <!-- Content -->
         ${content}
 
-        <!-- SPONSOR_BANNER -->
+        __SPONSOR_BANNER__
 
         <!-- Footer -->
         <div style="margin-top:40px; padding-top:24px; border-top:1px solid #1c5f3f; font-size:12px; color:#5E8775; line-height:1.6;">
