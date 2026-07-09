@@ -1099,9 +1099,10 @@ export default function PlatformMock() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#5E8775", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Competitions</div>
                 {COMPETITIONS.filter((c) => c.active).map((c) => (
                   <button key={c.key} onClick={() => { selectCompetition(c.key); setTab("markets"); setMenuOpen(false); }} className="sg"
-                    style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8, border: "none", background: activeCompKey === c.key ? "#16352A" : "transparent", color: activeCompKey === c.key ? "#2FA86C" : "#D9E5DE", fontSize: 14, fontWeight: activeCompKey === c.key ? 700 : 400, marginBottom: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                    {activeCompKey === c.key && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#2FA86C", flexShrink: 0 }} />}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8, border: "none", background: activeCompKey === c.key ? "#16352A" : "transparent", color: activeCompKey === c.key ? "#2FA86C" : "#D9E5DE", fontSize: 14, fontWeight: activeCompKey === c.key ? 700 : 400, marginBottom: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{c.icon}</span>
                     {c.name}
+                    {activeCompKey === c.key && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#2FA86C", marginLeft: "auto" }} />}
                   </button>
                 ))}
               </div>
@@ -1154,8 +1155,9 @@ export default function PlatformMock() {
                     border: `1px solid ${activeCompKey === c.key ? "#2FA86C" : "#16352A"}`,
                     background: activeCompKey === c.key ? "#16352A" : "#0F2920",
                     color: activeCompKey === c.key ? "#2FA86C" : "#9DBFAF",
+                    display: "flex", alignItems: "center", gap: 5,
                   }}>
-                  {c.name}
+                  <span style={{ fontSize: 14 }}>{c.icon}</span>{c.name}
                 </button>
               ))}
               {ordered.length > 3 && (
