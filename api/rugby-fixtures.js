@@ -164,7 +164,14 @@ export default async function handler(req, res) {
   if (!competitionKey) return res.status(400).json({ error: 'competitionKey required' })
   if (!process.env.RUGBY_API_KEY) return res.status(500).json({ error: 'RUGBY_API_KEY not configured' })
 
-  const leagueInfo = LEAGUE_MAP[competitionKey]
+  // Discovery mode — find available leagues matching a search term
+  if (req.query.discover) {
+    const term = req.query.discover
+    const data = await hl(`/leagues?leagueName=${encodeURIComponent(term)}&limit=10`)
+    return res.status(200).json({ leagues: data || [], term })
+  }
+
+
   if (!leagueInfo) return res.status(400).json({ error: `Unknown competition: ${competitionKey}` })
 
   try {
