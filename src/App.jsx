@@ -1143,7 +1143,7 @@ export default function PlatformMock() {
           const userActiveKeys = new Set(userActive.map((c) => c.key));
           const rest = activeComps.filter((c) => !userActiveKeys.has(c.key));
           const ordered = [...userActive, ...rest];
-          const pinned = ordered.slice(0, 4);
+          const pinned = ordered.slice(0, 3);
           return (
             <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
               {pinned.map((c) => (
@@ -1156,14 +1156,14 @@ export default function PlatformMock() {
                   {c.name}
                 </button>
               ))}
-              {ordered.length > 4 && (
+              {ordered.length > 3 && (
                 <button onClick={() => setMenuOpen(true)} className="sg"
                   style={{ padding: "7px 13px", borderRadius: 8, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer",
                     border: `1px solid ${!pinned.find(c => c.key === activeCompKey) ? "#2FA86C" : "#16352A"}`,
                     background: !pinned.find(c => c.key === activeCompKey) ? "#16352A" : "#0F2920",
                     color: !pinned.find(c => c.key === activeCompKey) ? "#2FA86C" : "#9DBFAF",
                   }}>
-                  {!pinned.find(c => c.key === activeCompKey) ? `• ${comp.name}` : `+${ordered.length - 4} more`}
+                  {!pinned.find(c => c.key === activeCompKey) ? `• ${comp.name}` : `+${ordered.length - 3} more`}
                 </button>
               )}
             </div>
@@ -1254,6 +1254,7 @@ export default function PlatformMock() {
                 createGroup={createGroup} groupNameError={groupNameError} joinCode={joinCode} setJoinCode={setJoinCode}
                 joinGroup={joinGroup} joinError={joinError} maxGroups={MAX_GROUPS_PER_USER}
                 activeGroupId={activeGroupId} setActiveGroupId={setActiveGroupId} seasonByUser={seasonByUser} compName={comp.name}
+                allCompData={compData} competitions={COMPETITIONS}
               />
             )}
 
@@ -1266,6 +1267,9 @@ export default function PlatformMock() {
                 favouriteTeamByComp={favouriteTeamByComp}
                 allTeams={allTeamsFor(comp)}
                 editWindowOpen={cd.round === 1}
+                allCompData={compData}
+                competitions={COMPETITIONS}
+                groups={groups}
               />
             )}
 
@@ -1539,14 +1543,81 @@ function tabStyle(active) {
   };
 }
 
-function LeaguesScreen({ userName, groups, newGroupName, setNewGroupName, createGroup, groupNameError, joinCode, setJoinCode, joinGroup, joinError, maxGroups, activeGroupId, setActiveGroupId, seasonByUser, compName }) {
+function LeaguesScreen({ userName, groups, newGroupName, setNewGroupName, createGroup, groupNameError, joinCode, setJoinCode, joinGroup, joinError, maxGroups, activeGroupId, setActiveGroupId, seasonByUser, compName, allCompData, competitions }) {
   const myGroups = groups.filter((g) => g.members.includes(userName));
-  const activeGroup = groups.find((g) => g.id === activeGroupId) || myGroups[0];
+  const [expandedGroup, setExpandedGroup] = useState(myGroups[0]?.id || null);
 
   return (
     <div>
+      {/* My leagues — expanded details */}
+      {myGroups.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div className="sg" style={{ fontSize: 11, fontWeight: 700, color: "#7FBFA0", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Your leagues</div>
+          {myGroups.map((g) => {
+            const isExpanded = expandedGroup === g.id;
+            const leagueMembers = seasonByUser.filter((r) => g.members.includes(r.name));
+            const myRank = leagueMembers.findIndex((r) => r.name === userName) + 1;
+            return (
+              <div key={g.id} style={{ ...card, marginBottom: 10, border: `1px solid ${isExpanded ? "#2FA86C" : "#16352A"}` }}>
+                {/* League header */}
+                <div onClick={() => setExpandedGroup(isExpanded ? null : g.id)} style={{ cursor: "pointer" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: isExpanded ? 12 : 0 }}>
+                    <div>
+                      <div className="sg" style={{ fontWeight: 700, fontSize: 14 }}>{g.name}</div>
+                      <div style={{ fontSize: 11, color: "#9DBFAF", marginTop: 3 }}>
+                        {g.members.length} member{g.members.length !== 1 ? "s" : ""}
+                        &nbsp;·&nbsp;
+                        <span className="mono">{g.inviteCode}</span>
+                        &nbsp;·&nbsp;
+                        <span style={{ color: g.status === "approved" ? "#7FBFA0" : "#D9A441" }}>{g.status}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      {myRank > 0 && <div style={{ fontSize: 12, color: "#2FA86C", fontWeight: 700 }}>#{myRank} of {leagueMembers.length}</div>}
+                      <div style={{ fontSize: 11, color: "#5E8775" }}>{isExpanded ? "▲" : "▼"}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded: leaderboard */}
+                {isExpanded && (
+                  <>
+                    <SponsorBanner label="Sponsor this league" sublabel="e.g. local club, brand" />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "4px 10px", fontSize: 11, color: "#7FBFA0", marginBottom: 6, marginTop: 8 }}>
+                      <span>Player</span><span>Balance</span><span>Country</span>
+                    </div>
+                    {leagueMembers.length === 0
+                      ? <div style={{ fontSize: 12, color: "#5E8775" }}>No rounds settled yet.</div>
+                      : leagueMembers.map((r, i) => (
+                        <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "4px 10px", fontSize: 13, padding: "5px 0",
+                          color: r.name === userName ? "#2FA86C" : "#F4F7F2", fontWeight: r.name === userName ? 700 : 400,
+                          borderTop: i === 0 ? "none" : "1px solid #0F2920" }}>
+                          <span>#{i + 1} {r.name}</span>
+                          <span className="mono">{Math.round(r.currentBalance)}</span>
+                          <span className="mono" style={{ color: "#7FBFA0" }}>{r.country}</span>
+                        </div>
+                      ))
+                    }
+
+                    {/* Invite code */}
+                    <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 8, background: "#0F2920", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: "#7FBFA0", marginBottom: 2 }}>Invite code</div>
+                        <div className="mono" style={{ fontSize: 16, fontWeight: 700, color: "#2FA86C", letterSpacing: 2 }}>{g.inviteCode}</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#5E8775" }}>Share to invite</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create a league */}
       <div style={card}>
-        <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Create a private league</div>
+        <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Create a league</div>
         <input
           placeholder="League name"
           value={newGroupName}
@@ -1557,14 +1628,17 @@ function LeaguesScreen({ userName, groups, newGroupName, setNewGroupName, create
         <button onClick={createGroup} className="sg" style={{ width: "100%", padding: 10, borderRadius: 8, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 13 }}>
           Create league
         </button>
-        <div style={{ fontSize: 11, color: "#7FBFA0", marginTop: 6 }}>{myGroups.length}/{maxGroups} leagues joined &mdash; this cap is shared across all sports and competitions, not per competition. The global leaderboard doesn't count against it. New leagues need approval before the invite code works.</div>
+        <div style={{ fontSize: 11, color: "#7FBFA0", marginTop: 6 }}>
+          {myGroups.length}/{maxGroups} leagues used &mdash; limit is shared across all competitions. New leagues need approval before the invite code is active.
+        </div>
         {myGroups.length >= maxGroups && (
           <div style={{ fontSize: 11, color: "#D9A441", marginTop: 6 }}>
-            You've hit your league limit. Purchasing extra slots (packs of 3) isn't wired up yet in this mock &mdash; the real version will offer that here.
+            You've hit your league limit. Extra slots (packs of 3) coming soon.
           </div>
         )}
       </div>
 
+      {/* Join with code */}
       <div style={{ ...card, marginTop: 12 }}>
         <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Join with an invite code</div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1580,84 +1654,59 @@ function LeaguesScreen({ userName, groups, newGroupName, setNewGroupName, create
         </div>
         {joinError && <div style={{ fontSize: 12, color: "#E0998F", marginTop: 6 }}>{joinError}</div>}
       </div>
-
-      {myGroups.length > 0 && (
-        <div style={{ ...card, marginTop: 12 }}>
-          <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Your leagues</div>
-          {myGroups.map((g) => (
-            <div
-              key={g.id}
-              onClick={() => setActiveGroupId(g.id)}
-              style={{ padding: 10, borderRadius: 8, marginBottom: 6, cursor: "pointer", border: `1.5px solid ${activeGroup?.id === g.id ? "#2FA86C" : "#16352A"}`, background: "#16352A" }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="sg" style={{ fontWeight: 600, fontSize: 13 }}>{g.name}</span>
-                <span className="mono" style={{ fontSize: 11, color: g.status === "approved" ? "#7FBFA0" : "#D9A441" }}>{g.status}</span>
-              </div>
-              <div style={{ fontSize: 11, color: "#9DBFAF", marginTop: 2 }}>{g.members.length} member{g.members.length !== 1 ? "s" : ""} &middot; invite code <span className="mono">{g.inviteCode}</span></div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeGroup && (
-        <div style={{ ...card, marginTop: 12 }}>
-          <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{activeGroup.name} &mdash; {compName} leaderboard</div>
-          <SponsorBanner label="Sponsor this league" sublabel="e.g. local club, brand" />
-          {seasonByUser.filter((r) => activeGroup.members.includes(r.name)).length === 0 && (
-            <div style={{ fontSize: 12, color: "#5E8775" }}>No rounds settled yet for this league's members.</div>
-          )}
-          {seasonByUser.filter((r) => activeGroup.members.includes(r.name)).map((r, i) => (
-            <div key={r.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", color: r.name === userName ? "#2FA86C" : "#F4F7F2", fontWeight: r.name === userName ? 700 : 400 }}>
-              <span>#{i + 1} {r.name}</span>
-              <span className="mono">{Math.round(r.currentBalance)}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTeamByComp, allTeams, editWindowOpen }) {
+function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTeamByComp, allTeams, editWindowOpen, allCompData, competitions, groups }) {
+  const [selectedComp, setSelectedComp] = useState(comp.key);
   const [filter, setFilter] = useState("global");
-  const myFavouriteTeam = favouriteTeamByComp[comp.key];
+
+  const myGroups = groups.filter((g) => g.members.includes(userName));
+  const activeComps = competitions.filter((c) => c.active && allCompData[c.key]?.bets?.length > 0 || allCompData[c.key]?.balance > 0 || allCompData[c.key]?.season?.length > 0);
+  const displayComps = competitions.filter((c) => c.active);
+
+  const currentSeasonByUser = seasonByUser; // for selected comp
+  const myFavouriteTeam = favouriteTeamByComp[selectedComp];
   const hasTeams = allTeams.length > 0;
 
   const filtered = useMemo(() => {
-    if (filter === "country") return seasonByUser.filter((r) => r.country === userCountry);
-    if (filter === "team") return seasonByUser.filter((r) => r.favouriteTeam === myFavouriteTeam);
-    return seasonByUser;
-  }, [filter, seasonByUser, userCountry, myFavouriteTeam]);
+    if (filter === "country") return currentSeasonByUser.filter((r) => r.country === userCountry);
+    if (filter === "team") return currentSeasonByUser.filter((r) => r.favouriteTeam === myFavouriteTeam);
+    return currentSeasonByUser;
+  }, [filter, currentSeasonByUser, userCountry, myFavouriteTeam]);
+
+  const myRank = filtered.findIndex((r) => r.name === userName) + 1;
 
   return (
     <div>
+      {/* Profile card */}
       <div style={{ ...card, marginBottom: 12 }}>
         <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Your ranking profile</div>
-
-        {/* Country — set at signup, never changeable */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, background: "#16352A", marginBottom: hasTeams ? 10 : 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, background: "#16352A" }}>
           <div>
             <div style={{ fontSize: 10, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Country</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#F4F7F2" }}>{FLAG_MAP[userCountry] || "🌍"} {userCountry}</div>
           </div>
           <div style={{ fontSize: 10, color: "#5E8775" }}>Set at sign-up</div>
         </div>
-
-        {/* Favourite team — selected in Games tab at season start, display only here */}
-        {hasTeams && (
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 10, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Favourite {comp.name} team</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, background: "#16352A" }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#F4F7F2" }}>
-                {myFavouriteTeam || <span style={{ color: "#5E8775" }}>Not set — pick one in the Games tab at season start</span>}
-              </div>
-              {myFavouriteTeam && <div style={{ fontSize: 10, color: "#5E8775" }}>Locked this season</div>}
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* Competition selector */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
+        {displayComps.map((c) => (
+          <button key={c.key} onClick={() => { setSelectedComp(c.key); setFilter("global"); }} className="sg"
+            style={{ padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer",
+              border: `1px solid ${selectedComp === c.key ? "#2FA86C" : "#16352A"}`,
+              background: selectedComp === c.key ? "#16352A" : "#0F2920",
+              color: selectedComp === c.key ? "#2FA86C" : "#9DBFAF",
+            }}>
+            {c.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Filter buttons */}
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         <button onClick={() => setFilter("global")} className="sg" style={tabStyle(filter === "global")}>Global</button>
         <button onClick={() => setFilter("country")} className="sg" style={tabStyle(filter === "country")}>{userCountry}</button>
@@ -1668,14 +1717,18 @@ function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTe
         )}
       </div>
 
+      {/* Leaderboard */}
       <div style={card}>
-        <div className="sg" style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
-          {comp.name} &mdash; {filter === "global" ? "global leaderboard" : filter === "country" ? `${userCountry} leaderboard` : `${myFavouriteTeam || ""} fans leaderboard`}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div className="sg" style={{ fontWeight: 700, fontSize: 13 }}>
+            {competitions.find(c => c.key === selectedComp)?.name} — {filter === "global" ? "global" : filter === "country" ? userCountry : myFavouriteTeam}
+          </div>
+          {myRank > 0 && <div style={{ fontSize: 11, color: "#2FA86C", fontWeight: 700 }}>You: #{myRank}</div>}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "4px 10px", fontSize: 11, color: "#7FBFA0", marginBottom: 4 }}>
           <span>Player</span><span>Balance</span><span>Country</span>
         </div>
-        {filtered.length === 0 && <div style={{ fontSize: 12, color: "#5E8775", padding: "8px 0" }}>No players match this filter yet.</div>}
+        {filtered.length === 0 && <div style={{ fontSize: 12, color: "#5E8775", padding: "8px 0" }}>No players yet — be the first to place a bet.</div>}
         {filtered.map((r, i) => (
           <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "4px 10px", fontSize: 13, padding: "5px 0", color: r.name === userName ? "#2FA86C" : "#F4F7F2", fontWeight: r.name === userName ? 700 : 400 }}>
             <span>#{i + 1} {r.name}</span>
@@ -1684,6 +1737,34 @@ function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTe
           </div>
         ))}
       </div>
+
+      {/* League rankings */}
+      {myGroups.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div className="sg" style={{ fontSize: 11, fontWeight: 700, color: "#7FBFA0", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Your league rankings</div>
+          {myGroups.map((g) => {
+            const leagueMembers = filtered.filter((r) => g.members.includes(r.name));
+            const myLeagueRank = leagueMembers.findIndex((r) => r.name === userName) + 1;
+            return (
+              <div key={g.id} style={{ ...card, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div className="sg" style={{ fontWeight: 700, fontSize: 13 }}>{g.name}</div>
+                  {myLeagueRank > 0 && <div style={{ fontSize: 11, color: "#2FA86C", fontWeight: 700 }}>You: #{myLeagueRank} of {leagueMembers.length}</div>}
+                </div>
+                {leagueMembers.length === 0
+                  ? <div style={{ fontSize: 12, color: "#5E8775" }}>No results yet for this league.</div>
+                  : leagueMembers.map((r, i) => (
+                    <div key={r.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0", color: r.name === userName ? "#2FA86C" : "#F4F7F2", fontWeight: r.name === userName ? 700 : 400 }}>
+                      <span>#{i + 1} {r.name}</span>
+                      <span className="mono">{Math.round(r.currentBalance)}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
