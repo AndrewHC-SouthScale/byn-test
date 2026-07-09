@@ -10,8 +10,7 @@ const SPORT_KEY_MAP = {
   laliga:  'soccer_spain_la_liga',
   nfl:     'americanfootball_nfl',
   fifa_wc: 'soccer_fifa_world_cup',
-  atp:     'tennis_atp_wimbledon',
-  wta:     'tennis_wta_wimbledon',
+  tennis:  ['tennis_atp_wimbledon', 'tennis_wta_wimbledon'], // combined mens + womens
   pga:     'golf_the_open_championship_winner',
 }
 
@@ -64,6 +63,23 @@ export async function fetchUpcomingFixtures(competitionKey, daysAhead = 14) {
   if (!sportKey) return []
   if (OUTRIGHT_COMPS.has(competitionKey)) return fetchOutrightOdds(competitionKey, daysAhead)
 
+  // Handle combined competitions (e.g. tennis = [ATP, WTA])
+  if (Array.isArray(sportKey)) {
+    const prefixes = { 'tennis_atp_wimbledon': '[M]', 'tennis_wta_wimbledon': '[W]' }
+    const allFixtures = await Promise.all(
+      sportKey.map(async (key) => {
+        const fixtures = await fetchFromSportKey(key, competitionKey, daysAhead)
+        const prefix = prefixes[key] || ''
+        return fixtures.map(f => ({ ...f, name: `${prefix} ${f.name}` }))
+      })
+    )
+    return allFixtures.flat()
+  }
+
+  return fetchFromSportKey(sportKey, competitionKey, daysAhead)
+}
+
+async function fetchFromSportKey(sportKey, competitionKey, daysAhead) {
   try {
     const url = new URL(`${BASE_URL}/sports/${sportKey}/odds`)
     url.searchParams.set('apiKey', API_KEY)

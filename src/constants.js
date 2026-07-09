@@ -71,15 +71,12 @@ export const TEAM_POOL_NBA = [
   ["Warriors", "Bucks",   [0.52, 0.00, 0.48]],
   ["Nuggets",  "Heat",    [0.55, 0.00, 0.45]],
 ];
-export const TEAM_POOL_ATP = [
-  ["Sinner",   "Alcaraz", [0.48, 0.00, 0.52]],
-  ["Djokovic", "Zverev",  [0.55, 0.00, 0.45]],
-  ["Medvedev", "Rublev",  [0.60, 0.00, 0.40]],
-];
-export const TEAM_POOL_WTA = [
-  ["Swiatek",  "Sabalenka", [0.52, 0.00, 0.48]],
-  ["Gauff",    "Rybakina",  [0.45, 0.00, 0.55]],
-  ["Pegula",   "Jabeur",    [0.50, 0.00, 0.50]],
+// Combined ATP + WTA team pool for tennis (used when live API is unavailable)
+export const TEAM_POOL_TENNIS = [
+  ["[M] Sinner",   "[M] Alcaraz",   [0.48, 0.00, 0.52]],
+  ["[M] Djokovic", "[M] Zverev",    [0.55, 0.00, 0.45]],
+  ["[W] Swiatek",  "[W] Sabalenka", [0.52, 0.00, 0.48]],
+  ["[W] Gauff",    "[W] Rybakina",  [0.45, 0.00, 0.55]],
 ];
 export const TEAM_POOL_IPL = [
   ["Mumbai Indians",   "Chennai Super Kings", [0.48, 0.04, 0.48]],
@@ -117,8 +114,7 @@ export const COMPETITIONS = [
   { key: "nfl",         category: "american_football",name: "NFL",               cadenceLabel: "Week",      format: "three_way_no_draw", teamPool: TEAM_POOL_NFL,                           special: false, baseLiquidity: 380, active: true  },
   { key: "nba",         category: "basketball",       name: "NBA",               cadenceLabel: "Gameweek",  format: "three_way_no_draw", teamPool: TEAM_POOL_NBA,                           special: false, baseLiquidity: 350, active: false },
   { key: "ipl",         category: "cricket",          name: "IPL",               cadenceLabel: "Match day", format: "three_way",         teamPool: TEAM_POOL_IPL,         midLabel: "Tie",  special: false, baseLiquidity: 150, active: false },
-  { key: "atp",         category: "tennis",           name: "ATP Wimbledon",     cadenceLabel: "Round",     format: "three_way_no_draw", teamPool: TEAM_POOL_ATP,                           special: false, baseLiquidity: 250, active: true  },
-  { key: "wta",         category: "tennis",           name: "WTA Wimbledon",     cadenceLabel: "Round",     format: "three_way_no_draw", teamPool: TEAM_POOL_WTA,                           special: false, baseLiquidity: 220, active: true  },
+  { key: "tennis",     category: "tennis",           name: "Wimbledon",        cadenceLabel: "Round",     format: "three_way_no_draw", teamPool: TEAM_POOL_TENNIS,                         special: false, baseLiquidity: 250, active: true  },
   { key: "f1",          category: "motorsport",       name: "F1",                cadenceLabel: "Race",      format: "outright",          field: DRIVER_FIELD,  fieldProbs: DRIVER_PROBS,  roundNames: F1_ROUNDS,     special: false, baseLiquidity: 280, active: true  },
   { key: "motogp",      category: "motorsport",       name: "MotoGP",            cadenceLabel: "Race",      format: "outright",          field: MOTOGP_FIELD,  fieldProbs: MOTOGP_PROBS,  roundNames: MOTOGP_ROUNDS, special: false, baseLiquidity: 220, active: false },
   { key: "nascar",      category: "motorsport",       name: "NASCAR",            cadenceLabel: "Race",      format: "outright",          field: NASCAR_FIELD,  fieldProbs: NASCAR_PROBS,  roundNames: NASCAR_ROUNDS, special: false, baseLiquidity: 180, active: false },

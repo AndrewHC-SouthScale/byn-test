@@ -44,7 +44,7 @@ function containsProfanity(text) {
 import { CATEGORIES, COMPETITIONS, BOTS, COUNTRIES, FLAG_MAP, MIN_COMMIT_FRACTION, WEEKLY_TOPUP, SEASON_LENGTH_DEMO, AD_BOOST_PER_VIEW, AD_BOOST_MAX, MAX_MEMBERS,
   TEAM_POOL_EPL, TEAM_POOL_LA_LIGA, TEAM_POOL_UCL, TEAM_POOL_FIFA_WC, TEAM_POOL_EUROS,
   TEAM_POOL_SIX_NATIONS, TEAM_POOL_RUGBY_WC, TEAM_POOL_PREM_RUGBY, TEAM_POOL_NFL,
-  TEAM_POOL_NBA, TEAM_POOL_ATP, TEAM_POOL_WTA, TEAM_POOL_IPL,
+  TEAM_POOL_NBA, TEAM_POOL_TENNIS, TEAM_POOL_IPL,
   DRIVER_FIELD, DRIVER_PROBS, MOTOGP_FIELD, MOTOGP_PROBS, NASCAR_FIELD, NASCAR_PROBS,
   GOLFER_FIELD, GOLFER_PROBS, F1_ROUNDS, MOTOGP_ROUNDS, NASCAR_ROUNDS, PGA_ROUNDS,
   BASE_LEAGUE_SLOTS
@@ -252,10 +252,11 @@ export default function PlatformMock() {
   useEffect(() => {
     loadLiveFixtures("epl");
     loadLiveFixtures("fifa_wc");
-    loadLiveFixtures("atp");
-    loadLiveFixtures("wta");
+    
+    
     loadLiveFixtures("pga");
     loadLiveFixtures("f1");
+    loadLiveFixtures("tennis");
   }, []);
 
   async function signInWithGoogle() {
