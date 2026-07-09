@@ -1669,9 +1669,16 @@ function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTe
   const activeComps = competitions.filter((c) => c.active && allCompData[c.key]?.bets?.length > 0 || allCompData[c.key]?.balance > 0 || allCompData[c.key]?.season?.length > 0);
   const displayComps = competitions.filter((c) => c.active);
 
-  const currentSeasonByUser = seasonByUser; // for selected comp
+  const currentSeasonByUser = seasonByUser;
   const myFavouriteTeam = favouriteTeamByComp[selectedComp];
   const hasTeams = allTeams.length > 0;
+
+  // Reset filter if team tab not applicable for selected comp
+  useEffect(() => {
+    if (filter === "team" && (!hasTeams || !myFavouriteTeam)) {
+      setFilter("global");
+    }
+  }, [selectedComp, hasTeams, myFavouriteTeam]);
 
   const filtered = useMemo(() => {
     if (filter === "country") return currentSeasonByUser.filter((r) => r.country === userCountry);
@@ -1713,9 +1720,9 @@ function RankingsScreen({ seasonByUser, userName, userCountry, comp, favouriteTe
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         <button onClick={() => setFilter("global")} className="sg" style={tabStyle(filter === "global")}>Global</button>
         <button onClick={() => setFilter("country")} className="sg" style={tabStyle(filter === "country")}>{userCountry}</button>
-        {hasTeams && (
-          <button onClick={() => setFilter("team")} className="sg" style={tabStyle(filter === "team")} disabled={!myFavouriteTeam}>
-            {myFavouriteTeam || "Pick a team"}
+        {hasTeams && myFavouriteTeam && (
+          <button onClick={() => setFilter("team")} className="sg" style={tabStyle(filter === "team")}>
+            {myFavouriteTeam}
           </button>
         )}
       </div>
