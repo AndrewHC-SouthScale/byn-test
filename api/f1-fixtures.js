@@ -12,36 +12,41 @@ const F1_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 
 // 2026 driver roster — driver_number maps to abbreviation
 // Update driver_number if team changes occur mid-season
+// 2026 full grid — 11 teams, 22 drivers. Updated July 2026 after British GP (Round 9)
+// Championship leader: Kimi Antonelli (Mercedes) 179pts, Russell 2nd 154pts
 const DRIVER_ROSTER = [
-  { abbr: 'NOR', number: 4,  name: 'Lando Norris',       team: 'McLaren'       },
-  { abbr: 'VER', number: 1,  name: 'Max Verstappen',      team: 'Red Bull'      },
-  { abbr: 'PIA', number: 81, name: 'Oscar Piastri',       team: 'McLaren'       },
-  { abbr: 'LEC', number: 16, name: 'Charles Leclerc',     team: 'Ferrari'       },
-  { abbr: 'ANT', number: 12, name: 'Kimi Antonelli',      team: 'Mercedes'      },
-  { abbr: 'RUS', number: 63, name: 'George Russell',      team: 'Mercedes'      },
-  { abbr: 'HAM', number: 44, name: 'Lewis Hamilton',      team: 'Ferrari'       },
-  { abbr: 'SAI', number: 55, name: 'Carlos Sainz',        team: 'Williams'      },
-  { abbr: 'ALB', number: 23, name: 'Alexander Albon',     team: 'Williams'      },
-  { abbr: 'HUL', number: 27, name: 'Nico Hülkenberg',    team: 'Sauber'        },
-  { abbr: 'TSU', number: 22, name: 'Yuki Tsunoda',        team: 'Red Bull'      },
-  { abbr: 'GAS', number: 10, name: 'Pierre Gasly',        team: 'Alpine'        },
-  { abbr: 'OCO', number: 31, name: 'Esteban Ocon',        team: 'Haas'          },
-  { abbr: 'STR', number: 18, name: 'Lance Stroll',        team: 'Aston Martin'  },
-  { abbr: 'ALO', number: 14, name: 'Fernando Alonso',     team: 'Aston Martin'  },
-  { abbr: 'LAW', number: 30, name: 'Liam Lawson',         team: 'Racing Bulls'  },
-  { abbr: 'HAD', number: 6,  name: 'Isack Hadjar',        team: 'Racing Bulls'  },
-  { abbr: 'BEA', number: 87, name: 'Oliver Bearman',      team: 'Haas'          },
-  { abbr: 'DOO', number: 7,  name: 'Jack Doohan',         team: 'Alpine'        },
-  { abbr: 'BOT', number: 77, name: 'Valtteri Bottas',     team: 'Sauber'        },
+  { abbr: 'ANT', number: 12, name: 'Kimi Antonelli',    team: 'Mercedes'      },
+  { abbr: 'RUS', number: 63, name: 'George Russell',    team: 'Mercedes'      },
+  { abbr: 'LEC', number: 16, name: 'Charles Leclerc',   team: 'Ferrari'       },
+  { abbr: 'HAM', number: 44, name: 'Lewis Hamilton',    team: 'Ferrari'       },
+  { abbr: 'NOR', number: 4,  name: 'Lando Norris',      team: 'McLaren'       },
+  { abbr: 'PIA', number: 81, name: 'Oscar Piastri',     team: 'McLaren'       },
+  { abbr: 'VER', number: 33, name: 'Max Verstappen',    team: 'Red Bull'      },
+  { abbr: 'HAD', number: 6,  name: 'Isack Hadjar',      team: 'Red Bull'      },
+  { abbr: 'SAI', number: 55, name: 'Carlos Sainz',      team: 'Williams'      },
+  { abbr: 'ALB', number: 23, name: 'Alexander Albon',   team: 'Williams'      },
+  { abbr: 'LAW', number: 30, name: 'Liam Lawson',       team: 'Racing Bulls'  },
+  { abbr: 'LIN', number: 5,  name: 'Arvid Lindblad',   team: 'Racing Bulls'  },
+  { abbr: 'ALO', number: 14, name: 'Fernando Alonso',   team: 'Aston Martin'  },
+  { abbr: 'STR', number: 18, name: 'Lance Stroll',      team: 'Aston Martin'  },
+  { abbr: 'OCO', number: 31, name: 'Esteban Ocon',      team: 'Haas'          },
+  { abbr: 'BEA', number: 87, name: 'Oliver Bearman',    team: 'Haas'          },
+  { abbr: 'HUL', number: 27, name: 'Nico Hülkenberg',  team: 'Audi'          },
+  { abbr: 'BOR', number: 8,  name: 'Gabriel Bortoleto', team: 'Audi'          },
+  { abbr: 'GAS', number: 10, name: 'Pierre Gasly',      team: 'Alpine'        },
+  { abbr: 'COP', number: 43, name: 'Franco Colapinto',  team: 'Alpine'        },
+  { abbr: 'PER', number: 11, name: 'Sergio Pérez',      team: 'Cadillac'      },
+  { abbr: 'BOT', number: 77, name: 'Valtteri Bottas',   team: 'Cadillac'      },
 ]
 
-// 2025 final championship points (approximate)
-// Source: 2025 season results
+// 2025 final championship points
+// Norris won 2025 title in Abu Dhabi on countback over Verstappen and Piastri
 const STANDINGS_2025 = {
   NOR: 430, VER: 381, PIA: 340, LEC: 295, RUS: 258,
-  HAM: 234, SAI: 189, ALB: 115, HUL: 96,  TSU: 82,
-  GAS: 74,  OCO: 56,  STR: 40,  ALO: 38,  LAW: 30,
-  BEA: 22,  DOO: 5,   BOT: 4,   ANT: 0,   HAD: 0,
+  HAM: 234, SAI: 189, ALB: 115, HUL: 96,  GAS: 74,
+  OCO: 56,  STR: 40,  ALO: 38,  LAW: 30,  BEA: 22,
+  BOT: 4,   ANT: 0,   HAD: 0,   LIN: 0,   BOR: 0,
+  COP: 0,   PER: 0,
 }
 
 // Map driver_number → abbreviation
