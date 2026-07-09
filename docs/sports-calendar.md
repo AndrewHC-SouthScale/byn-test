@@ -238,7 +238,31 @@ The Odds API fixtures typically appear **1–2 weeks before the first match**. R
 
 ---
 
-### Rugby World Cup
+### Nations Championship
+| Event | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 (inaugural) | **4 Jul 2026** | **29 Nov 2026** | **Already underway** | *(check API — new competition)* |
+| 2028 | ~Jul 2028 | ~Nov 2028 | ~Jun 2028 | *(biennial — skips 2027 RWC year)* |
+
+- BYN key: `nations_champ` · Format: `three_way` · 6 rounds + Finals Weekend
+- 12 teams: England, France, Ireland, Italy, Scotland, Wales + NZ, SA, Argentina, Australia, Fiji, Japan
+- Finals Weekend: Allianz Stadium, Twickenham, 27–29 Nov 2026
+- **Status: ❌ Inactive — competition is live NOW (started 4 Jul 2026). Activate immediately if desired.**
+
+---
+
+### Rugby Championship
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 | **15 Aug 2026** | **19 Sep 2026** | **16 Jul 2026** | *(check API — likely `rugby_union_rugby_championship`)* |
+| 2027 | ~Aug 2027 | ~Sep 2027 | ~Jul 2027 | *(check API)* |
+
+- BYN key: `rugby_champ` · Format: `three_way` · 6 rounds (home & away)
+- 4 teams: New Zealand, South Africa, Argentina, Australia
+- Note: 2026 Rugby Championship matches are part of the Nations Championship July window
+- **Status: ❌ Inactive — activate 16 Jul 2026**
+
+---
 | Tournament | Start | End | BYN activate by | Odds API key |
 |---|---|---|---|---|
 | 2027 RWC | **~Sep 2027** | ~Nov 2027 | **~Aug 2027** | *(check API)* |
@@ -267,6 +291,8 @@ The Odds API fixtures typically appear **1–2 weeks before the first match**. R
 
 | Date | Action |
 |---|---|
+| **🔴 NOW** | Nations Championship already underway (started 4 Jul 2026) — activate immediately
+| **16 Jul 2026** | Activate Rugby Championship 2026 in BYN |
 | **15 Jul 2026** | Activate La Liga 2026–27 in BYN |
 | **19 Jul 2026** | World Cup ends — deactivate `fifa_wc` |
 | **19 Jul 2026** | The Open ends — rename `pga` (e.g. "Golf — Next Major TBC") |
