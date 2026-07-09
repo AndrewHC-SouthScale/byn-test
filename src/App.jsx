@@ -257,6 +257,7 @@ export default function PlatformMock() {
     loadLiveFixtures("pga");
     loadLiveFixtures("f1");
     loadLiveFixtures("tennis");
+    loadLiveFixtures("nations_champ");
   }, []);
 
   async function signInWithGoogle() {

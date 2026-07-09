@@ -48,11 +48,39 @@ function devig(decimalOdds) {
   return implied.map((p) => p / total)
 }
 
+// ── Rugby competitions via Highlightly ────────────────────────────────────────
+const RUGBY_COMPS = new Set(['nations_champ', 'rugby_champ', 'six_nations', 'urc', 'super_rugby', 'prem_rugby', 'rugby_wc'])
+
+async function fetchRugbyFixtures(competitionKey) {
+  try {
+    const res = await fetch(`/api/rugby-fixtures?competitionKey=${competitionKey}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    if (!data.fixtures?.length) return []
+    return data.fixtures.map(f => ({
+      name: f.name,
+      kickoff: f.kickoff,
+      externalId: f.externalId,
+      outcomes: f.outcomes,
+      probabilities: f.probabilities,
+      format: f.format,
+    }))
+  } catch (err) {
+    console.error('Error fetching rugby fixtures:', err)
+    return []
+  }
+}
+
 // ── MAIN ENTRY POINT ──────────────────────────────────────────────────────────
 export async function fetchUpcomingFixtures(competitionKey, daysAhead = 14) {
-  // F1 uses API-Sports regardless of Odds API status
+  // F1 uses OpenF1 regardless of Odds API status
   if (competitionKey === 'f1') {
     return fetchF1Fixtures()
+  }
+
+  // Rugby competitions use Highlightly API regardless of Odds API status
+  if (RUGBY_COMPS.has(competitionKey)) {
+    return fetchRugbyFixtures(competitionKey)
   }
 
   // Odds API disabled during testing — remove this return to re-enable
