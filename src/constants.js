@@ -59,6 +59,17 @@ export const TEAM_POOL_PREM_RUGBY = [
   ["Bath",            "Northampton Saints",[0.50, 0.12, 0.38]],
   ["Sale Sharks",     "Exeter Chiefs",     [0.44, 0.13, 0.43]],
 ];
+export const TEAM_POOL_URC = [
+  ["Leinster",   "Bulls",     [0.55, 0.13, 0.32]],
+  ["Stormers",   "Munster",   [0.44, 0.14, 0.42]],
+  ["Glasgow",    "Sharks",    [0.46, 0.13, 0.41]],
+  ["Lions",      "Ulster",    [0.42, 0.14, 0.44]],
+];
+export const TEAM_POOL_SUPER_RUGBY = [
+  ["Crusaders",  "Blues",       [0.46, 0.10, 0.44]],
+  ["Hurricanes", "Chiefs",      [0.48, 0.10, 0.42]],
+  ["Brumbies",   "Highlanders", [0.50, 0.11, 0.39]],
+];
 export const TEAM_POOL_NFL = [
   ["Chiefs",   "Bills",    [0.55, 0.00, 0.45]],
   ["Eagles",   "Cowboys",  [0.48, 0.00, 0.52]],
@@ -110,7 +121,9 @@ export const COMPETITIONS = [
   { key: "euros",       category: "football",         name: "Euros",             cadenceLabel: "Round",     format: "three_way",         teamPool: TEAM_POOL_EUROS,       midLabel: "Draw", special: true,  baseLiquidity: 420, active: false },
   { key: "six_nations", category: "rugby",            name: "Six Nations",       cadenceLabel: "Round",     format: "three_way",         teamPool: TEAM_POOL_SIX_NATIONS, midLabel: "Draw", special: true,  baseLiquidity: 150, active: false },
   { key: "rugby_wc",    category: "rugby",            name: "Rugby World Cup",   cadenceLabel: "Round",     format: "three_way",         teamPool: TEAM_POOL_RUGBY_WC,    midLabel: "Draw", special: true,  baseLiquidity: 180, active: false },
-  { key: "prem_rugby",  category: "rugby",            name: "Premiership Rugby", cadenceLabel: "Round",     format: "three_way",         teamPool: TEAM_POOL_PREM_RUGBY,  midLabel: "Draw", special: false, baseLiquidity: 100, active: false },
+  { key: "prem_rugby",    category: "rugby",            name: "Premiership Rugby", cadenceLabel: "Round",     format: "three_way",         teamPool: TEAM_POOL_PREM_RUGBY,  midLabel: "Draw", special: false, baseLiquidity: 100, active: false },
+  { key: "urc",           category: "rugby",            name: "United Rugby Championship", cadenceLabel: "Round", format: "three_way",       teamPool: TEAM_POOL_URC,         midLabel: "Draw", special: false, baseLiquidity: 120, active: false },
+  { key: "super_rugby",   category: "rugby",            name: "Super Rugby Pacific", cadenceLabel: "Round",   format: "three_way_no_draw", teamPool: TEAM_POOL_SUPER_RUGBY,                   special: false, baseLiquidity: 120, active: false },
   { key: "nfl",         category: "american_football",name: "NFL",               cadenceLabel: "Week",      format: "three_way_no_draw", teamPool: TEAM_POOL_NFL,                           special: false, baseLiquidity: 380, active: true  },
   { key: "nba",         category: "basketball",       name: "NBA",               cadenceLabel: "Gameweek",  format: "three_way_no_draw", teamPool: TEAM_POOL_NBA,                           special: false, baseLiquidity: 350, active: false },
   { key: "ipl",         category: "cricket",          name: "IPL",               cadenceLabel: "Match day", format: "three_way",         teamPool: TEAM_POOL_IPL,         midLabel: "Tie",  special: false, baseLiquidity: 150, active: false },

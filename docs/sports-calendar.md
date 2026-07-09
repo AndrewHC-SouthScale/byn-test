@@ -212,6 +212,32 @@ The Odds API fixtures typically appear **1–2 weeks before the first match**. R
 
 ---
 
+### United Rugby Championship (URC)
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026–27 | **25 Sep 2026** | 19 Jun 2027 | **26 Aug 2026** | *(check The Odds API — likely `rugby_union_urc`)* |
+
+- BYN key: `urc` · Format: `three_way` · Rounds: 18 regular season
+- Includes 4 SA teams: Bulls, Lions, Sharks, Stormers
+- Full fixtures released 19 May 2026 (already available)
+- Also includes Irish, Scottish, Welsh, Italian teams
+- **Status: ❌ Inactive — activate 26 Aug 2026**
+
+---
+
+### Super Rugby Pacific
+| Season | Start | End | BYN activate by | Odds API key |
+|---|---|---|---|---|
+| 2026 | 13 Feb 2026 | 20 Jun 2026 | Already passed | *(completed — Hurricanes won)* |
+| 2027 | **12 Feb 2027** | 26 Jun 2027 | **13 Jan 2027** | *(check API — likely `rugby_union_super_rugby_pacific`)* |
+
+- BYN key: `super_rugby` · Format: `three_way_no_draw` · Rounds: 16 regular season
+- 10 teams: NZ (Blues, Chiefs, Crusaders, Highlanders, Hurricanes), AUS (Brumbies, Reds, Waratahs, Force), Fiji (Fijian Drua)
+- Note: Moana Pasifika absent from 2027 field
+- **Status: ❌ Inactive — 2026 season complete, activate Jan 2027 for 2027 season**
+
+---
+
 ### Rugby World Cup
 | Tournament | Start | End | BYN activate by | Odds API key |
 |---|---|---|---|---|
@@ -250,9 +276,11 @@ The Odds API fixtures typically appear **1–2 weeks before the first match**. R
 | **10 Aug 2026** | Activate NFL 2026–27 in BYN |
 | **16 Aug 2026** | Activate Champions League 2026–27 in BYN |
 | **26 Aug 2026** | Activate Premiership Rugby 2026–27 in BYN |
+| **26 Aug 2026** | Activate URC 2026–27 in BYN |
 | **13 Sep 2026** | US Open tennis ends — rename `atp`/`wta` to next tournament |
 | **21 Sep 2026** | Activate NBA 2026–27 in BYN |
 | **6 Jan 2027** | Activate Six Nations 2027 in BYN |
+| **13 Jan 2027** | Activate Super Rugby Pacific 2027 in BYN |
 | **8 Feb 2027** | Activate IPL 2027 in BYN |
 | **8 Mar 2027** | Activate The Masters (golf) in BYN |
 
