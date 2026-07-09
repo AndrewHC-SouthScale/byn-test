@@ -278,14 +278,14 @@ export async function sendDeletionReminderEmail({ to, displayName, scheduledFor 
     html,
   })
 }
-export async function sendRoundSettledEmail({ to, displayName, competitionName, roundNumber, endingBalance, payout, rank, totalPlayers }) {
-  const won = payout > 0
-  const emoji = rank === 1 ? '🏆' : rank <= 3 ? '🥉' : won ? '✅' : '📊'
-  const rankSuffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th'
+export async function sendRoundSettledEmail({ to, displayName, competitionName, roundNumber, endingBalance, payout }) {
+  const roundedBalance = Math.round(endingBalance)
+  const roundedPayout  = Math.round(payout)
+  const won = roundedPayout > 0
 
   const html = emailWrapper(`
     <h1 style="font-size:22px; font-weight:700; margin:0 0 6px; color:#F4F7F2;">
-      ${emoji} Round ${roundNumber} settled
+      Round ${roundNumber} settled
     </h1>
     <p style="font-size:15px; color:#9DBFAF; margin:0 0 24px;">
       ${competitionName} — here's how you did.
@@ -295,33 +295,27 @@ export async function sendRoundSettledEmail({ to, displayName, competitionName, 
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="padding:8px 0; font-size:14px; color:#9DBFAF;">Round payout</td>
-          <td style="padding:8px 0; font-size:14px; text-align:right; font-weight:700; color:${payout > 0 ? '#2FA86C' : '#9DBFAF'};">
-            ${payout > 0 ? '+' : ''}${payout.toLocaleString()} nuts
+          <td style="padding:8px 0; font-size:14px; text-align:right; font-weight:700; color:${won ? '#2FA86C' : '#9DBFAF'};">
+            ${won ? '+' : ''}${roundedPayout.toLocaleString()} nuts
           </td>
         </tr>
         <tr>
           <td style="padding:8px 0; font-size:14px; color:#9DBFAF; border-top:1px solid #1c5f3f;">Balance after round</td>
           <td style="padding:8px 0; font-size:20px; text-align:right; font-weight:700; color:#F4F7F2; border-top:1px solid #1c5f3f;">
-            ${endingBalance.toLocaleString()} nuts
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0; font-size:14px; color:#9DBFAF;">Your rank</td>
-          <td style="padding:8px 0; font-size:14px; text-align:right; font-weight:700; color:#F4F7F2;">
-            ${rank}${rankSuffix} of ${totalPlayers}
+            ${roundedBalance.toLocaleString()} nuts
           </td>
         </tr>
       </table>
     </div>
 
-    <a href="https://bynapp.online" style="display:inline-block; background:#2FA86C; color:#0A1F1A; font-weight:700; font-size:15px; padding:14px 28px; border-radius:10px; text-decoration:none;">
-      View results & bet next round →
+    <a href="https://bynapp.online/app" style="display:inline-block; background:#2FA86C; color:#0A1F1A; font-weight:700; font-size:15px; padding:14px 28px; border-radius:10px; text-decoration:none;">
+      View results &amp; bet next round →
     </a>
   `)
 
   return sendEmail({
     to,
-    subject: `Round ${roundNumber} settled — you finished ${rank}${rankSuffix}`,
+    subject: `Round ${roundNumber} settled — See your results`,
     html,
   })
 }

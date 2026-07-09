@@ -802,8 +802,6 @@ export default function PlatformMock() {
           roundNumber: compData[activeCompKey]?.round || 1,
           endingBalance: myEndingBalance,
           payout: myEndingBalance - (compData[activeCompKey]?.balance || 0),
-          rank: 1,
-          totalPlayers: 1,
         });
       }
     } catch (err) {
