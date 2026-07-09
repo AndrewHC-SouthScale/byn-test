@@ -1132,10 +1132,18 @@ export default function PlatformMock() {
           </div>
         )}
 
-        {/* Single-tier competition buttons — 4 visible, active comp highlighted */}
+        {/* Single-tier competition buttons — user's active comps first, then rest */}
         {(() => {
           const activeComps = COMPETITIONS.filter((c) => c.active);
-          const pinned = activeComps.slice(0, 4);
+          // User is "active" in a comp if they have bets or non-zero balance
+          const userActive = activeComps.filter((c) => {
+            const d = compData[c.key];
+            return d && (d.bets.length > 0 || d.balance > 0);
+          });
+          const userActiveKeys = new Set(userActive.map((c) => c.key));
+          const rest = activeComps.filter((c) => !userActiveKeys.has(c.key));
+          const ordered = [...userActive, ...rest];
+          const pinned = ordered.slice(0, 4);
           return (
             <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
               {pinned.map((c) => (
@@ -1148,14 +1156,14 @@ export default function PlatformMock() {
                   {c.name}
                 </button>
               ))}
-              {activeComps.length > 4 && (
+              {ordered.length > 4 && (
                 <button onClick={() => setMenuOpen(true)} className="sg"
                   style={{ padding: "7px 13px", borderRadius: 8, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer",
                     border: `1px solid ${!pinned.find(c => c.key === activeCompKey) ? "#2FA86C" : "#16352A"}`,
                     background: !pinned.find(c => c.key === activeCompKey) ? "#16352A" : "#0F2920",
                     color: !pinned.find(c => c.key === activeCompKey) ? "#2FA86C" : "#9DBFAF",
                   }}>
-                  {!pinned.find(c => c.key === activeCompKey) ? `• ${comp.name}` : `+${activeComps.length - 4} more`}
+                  {!pinned.find(c => c.key === activeCompKey) ? `• ${comp.name}` : `+${ordered.length - 4} more`}
                 </button>
               )}
             </div>
@@ -1196,9 +1204,7 @@ export default function PlatformMock() {
           />
         )}
 
-        {tab === "howto" && <HowToPlayScreen />}
-
-        {tab !== "profile" && tab !== "howto" && (
+        {tab !== "profile" && (
           <>
         <SponsorBanner label="BYN — Bet Your Nuts" sublabel="No real money — just bragging rights." houseAd />
 
@@ -1241,13 +1247,6 @@ export default function PlatformMock() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, margin: "16px 0", overflowX: "auto" }}>
-              <button onClick={() => setTab("markets")} className="sg" style={tabStyle(tab === "markets")}>Games</button>
-              <button onClick={() => setTab("leagues")} className="sg" style={tabStyle(tab === "leagues")}>
-                Leagues {groups.filter((g) => g.members.includes(userName)).length > 0 && `(${groups.filter((g) => g.members.includes(userName)).length})`}
-              </button>
-              <button onClick={() => setTab("rankings")} className="sg" style={tabStyle(tab === "rankings")}>Rankings</button>
-            </div>
 
             {tab === "leagues" && (
               <LeaguesScreen
@@ -1270,7 +1269,8 @@ export default function PlatformMock() {
               />
             )}
 
-            {tab === "markets" && (
+            {tab === "howto" && <HowToPlayScreen />}
+            {(tab === "markets" || !["leagues","rankings","howto"].includes(tab)) && (
               <>
                 {/* Favourite team prompt — shown at season start for team sports */}
                 {cd.round === 1 && allTeamsFor(comp).length > 0 && (
