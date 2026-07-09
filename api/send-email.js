@@ -82,10 +82,10 @@ export default async function handler(req, res) {
   const sponsor = await getActiveSponsor()
   const banner  = sponsorBannerHTML(sponsor)
 
-  // Inject sponsor banner before the closing </body> tag
+  // Inject sponsor banner at the marked position (above footer)
   const finalHtml = banner
-    ? html.replace('</body>', `${banner}</body>`)
-    : html
+    ? html.replace('<!-- SPONSOR_BANNER -->', banner)
+    : html.replace('<!-- SPONSOR_BANNER -->', '')
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
