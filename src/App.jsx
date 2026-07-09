@@ -727,7 +727,11 @@ export default function PlatformMock() {
           }
         });
         if (winnerUpdates.length) {
-          await supabase.from('market_outcomes').upsert(winnerUpdates);
+          for (const w of winnerUpdates) {
+            await supabase.from('market_outcomes')
+              .update({ is_winner: true })
+              .eq('id', w.id);
+          }
         }
 
         // 2. Mark round as settled
@@ -769,7 +773,11 @@ export default function PlatformMock() {
           });
 
           if (updates.length) {
-            await supabase.from('bets').upsert(updates);
+            for (const update of updates) {
+              await supabase.from('bets')
+                .update({ settled: update.settled, payout: update.payout })
+                .eq('id', update.id);
+            }
           }
         }
       }
