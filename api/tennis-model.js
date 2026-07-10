@@ -106,16 +106,21 @@ export default async function handler(req, res) {
 
   if (!upcoming.length) {
     // If no upcoming non-TBD matches, show TBD finals
-    const tbdFinals = (tournament.fixtures || [])
+    const upcomingFinals = (tournament.fixtures || [])
       .filter(f => f.tbd && new Date(f.date) > now)
-    if (tbdFinals.length) {
+    if (upcomingFinals.length) {
       return res.status(200).json({
         fixtures: [],
         debug: 'Finals TBD — semi-final results needed',
-        upcomingFinals: tbdFinals.map(f => ({ date: f.date, stage: 'Final' })),
+        nextFixture: upcomingFinals[0].date,
+        upcomingFinals: upcomingFinals.map(f => ({ date: f.date, stage: 'Final' })),
       })
     }
-    return res.status(200).json({ fixtures: [], debug: 'Tournament complete or no upcoming matches' })
+    return res.status(200).json({
+      fixtures: [],
+      debug: 'Tournament complete or no upcoming matches',
+      nextFixture: null,
+    })
   }
 
   const fixtures = upcoming.map(f => {

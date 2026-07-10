@@ -63,6 +63,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       fixtures: [],
       debug: 'No NFL fixtures in next 21 days',
+      nextFixture: '2026-09-04T00:20:00Z',
       seasonOpens: '2026-09-04',
     })
   }

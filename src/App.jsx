@@ -381,6 +381,7 @@ export default function PlatformMock() {
   const [liveFixtures, setLiveFixtures] = useState({});
   const [fixturesLoading, setFixturesLoading] = useState(false);
   const [noFixturesComps, setNoFixturesComps] = useState(new Set());
+  const [nextFixtureDates, setNextFixtureDates] = useState({});
 
   // Seed cd.markets from live API odds at round start (before any bets)
   // After seeding, LMSR takes over — API is never consulted again mid-round
@@ -455,8 +456,11 @@ export default function PlatformMock() {
         return;
       }
 
-      // 2. Cache miss — call the model
-      const fixtures = await fetchUpcomingFixtures(compKey, 14);
+      // 2. Cache miss
+      const result = await fetchUpcomingFixtures(compKey, 14);
+      const fixtures = Array.isArray(result) ? result : (result.fixtures || []);
+      const nextFixtureDate = Array.isArray(result) ? null : (result.nextFixtureDate || null);
+
       if (fixtures.length > 0) {
         setLiveFixtures((prev) => ({ ...prev, [compKey]: fixtures }));
         seedMarketsFromLive(compKey, fixtures);
@@ -464,6 +468,9 @@ export default function PlatformMock() {
       } else {
         // No fixtures available — mark so UI can show appropriate message
         setNoFixturesComps((prev) => new Set([...prev, compKey]));
+        if (nextFixtureDate) {
+          setNextFixtureDates((prev) => ({ ...prev, [compKey]: nextFixtureDate }));
+        }
       }
     } catch (err) {
       console.error('Error loading live fixtures:', err);
@@ -1326,14 +1333,28 @@ export default function PlatformMock() {
                       </div>
                     )}
                     {!fixturesLoading && !cd.liveSeeded && noFixturesComps.has(activeCompKey) && (
-                      <div style={{ ...card, textAlign: "center", padding: "28px 16px", marginBottom: 12 }}>
-                        <div style={{ fontSize: 28, marginBottom: 10 }}>{comp.icon}</div>
-                        <div className="sg" style={{ fontWeight: 700, fontSize: 15, marginBottom: 8, color: "#F4F7F2" }}>{comp.name}</div>
-                        <div style={{ fontSize: 13, color: "#9DBFAF", marginBottom: 6 }}>No fixtures available right now.</div>
-                        <div style={{ fontSize: 12, color: "#5E8775" }}>
-                          Check back closer to the season start, or browse another competition in the menu.
-                        </div>
-                      </div>
+                      <NoFixturesCard
+                        comp={comp}
+                        nextFixtureDate={nextFixtureDates[activeCompKey] || null}
+                        onRemind={async () => {
+                          const { data: { session } } = await supabase.auth.getSession();
+                          if (!session) return;
+                          const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', session.user.id).maybeSingle();
+                          const res = await fetch('/api/set-reminder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              userId: session.user.id,
+                              email: session.user.email,
+                              displayName: profile?.display_name || userName,
+                              competitionKey: activeCompKey,
+                              competitionName: comp.name,
+                              fixtureDate: nextFixtureDates[activeCompKey],
+                            }),
+                          });
+                          return res.ok;
+                        }}
+                      />
                     )}
                     {!fixturesLoading && !cd.liveSeeded && !noFixturesComps.has(activeCompKey) && (
                       <div style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#16352A", marginBottom: 8, fontSize: 11, color: "#9DBFAF" }}>
@@ -2108,6 +2129,78 @@ function ProfileSummaryScreen({ userName, compData, groups, userCountry, favouri
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function NoFixturesCard({ comp, nextFixtureDate, onRemind }) {
+  const [reminded, setReminded] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const fixtureFormatted = nextFixtureDate
+    ? new Date(nextFixtureDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  const reminderDate = nextFixtureDate
+    ? new Date(new Date(nextFixtureDate).getTime() - 7 * 24 * 60 * 60 * 1000)
+    : null;
+
+  const reminderFormatted = reminderDate
+    ? reminderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  const canRemind = nextFixtureDate && reminderDate && reminderDate > new Date();
+
+  async function handleRemind() {
+    setLoading(true);
+    try {
+      // Request browser notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      const ok = await onRemind();
+      if (ok) setReminded(true);
+    } catch (err) {
+      console.error('Reminder error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ ...card, textAlign: "center", padding: "28px 16px", marginBottom: 12 }}>
+      <div style={{ fontSize: 32, marginBottom: 10 }}>{comp.icon}</div>
+      <div className="sg" style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: "#F4F7F2" }}>{comp.name}</div>
+
+      {fixtureFormatted ? (
+        <>
+          <div style={{ fontSize: 13, color: "#9DBFAF", marginBottom: 4 }}>No fixtures in the next 21 days.</div>
+          <div style={{ fontSize: 13, color: "#7FBFA0", fontWeight: 600, marginBottom: 16 }}>
+            Next fixtures: <span style={{ color: "#F4F7F2" }}>{fixtureFormatted}</span>
+          </div>
+          {canRemind && (
+            reminded ? (
+              <div style={{ fontSize: 13, color: "#2FA86C", fontWeight: 600 }}>
+                ✓ We'll remind you on {reminderFormatted}
+              </div>
+            ) : (
+              <>
+                <button onClick={handleRemind} disabled={loading} className="sg"
+                  style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#2FA86C", color: "#0A1F1A", fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Setting reminder..." : "🔔 Remind Me"}
+                </button>
+                <div style={{ fontSize: 11, color: "#5E8775", marginTop: 8 }}>
+                  We'll email you 1 week before — {reminderFormatted}
+                </div>
+              </>
+            )
+          )}
+        </>
+      ) : (
+        <div style={{ fontSize: 13, color: "#9DBFAF" }}>
+          No fixtures scheduled yet. Check back soon.
+        </div>
+      )}
     </div>
   );
 }

@@ -346,10 +346,12 @@ export default async function handler(req, res) {
       .sort((a, b) => new Date(a.date) - new Date(b.date))
 
     if (!upcoming.length) {
+      const next = scheduleFixtures.find(f => new Date(f.date) > now)
       return res.status(200).json({
         fixtures: [],
         debug: 'No fixtures in the next 21 days',
-        nextFixture: scheduleFixtures.find(f => new Date(f.date) > now)?.date || 'none',
+        nextFixture: next?.date || null,
+        nextMatch: next ? `${next.home} vs ${next.away}` : null,
       })
     }
 
