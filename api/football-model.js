@@ -286,7 +286,8 @@ export default async function handler(req, res) {
   if (!schedule) return res.status(200).json({ fixtures: [], debug: `No schedule for ${competitionKey}` })
 
   const now = new Date()
-  const cutoff = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
+  // 90-day window so admin/planning shows upcoming seasons even months out
+  const cutoff = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
   const ratings = CLUB_RATINGS[competitionKey]
 
   const allFuture = schedule.filter(f => new Date(f.date) > now).sort((a,b) => new Date(a.date) - new Date(b.date))
@@ -328,11 +329,17 @@ export default async function handler(req, res) {
       format,
       stage: f.stage || null,
       meta: {
-        homeRating: FIFA[f.home] || ratings[f.home] || null,
-        awayRating: FIFA[f.away] || ratings[f.away] || null,
+        homeRating: FIFA[f.home] || (ratings?.[f.home]) || null,
+        awayRating: FIFA[f.away] || (ratings?.[f.away]) || null,
       },
     }
   })
 
-  return res.status(200).json({ fixtures, competition: competitionKey, count: fixtures.length })
+  return res.status(200).json({
+    fixtures,
+    nextFixture: upcoming[0]?.date || null,
+    nextFixtureName: upcoming[0] ? `${upcoming[0].home} vs ${upcoming[0].away}` : null,
+    competition: competitionKey,
+    count: fixtures.length,
+  })
 }

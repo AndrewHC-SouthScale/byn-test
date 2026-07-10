@@ -322,7 +322,7 @@ export default async function handler(req, res) {
 
   try {
     const now = new Date()
-    const cutoff = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
+    const cutoff = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
 
     // Fetch World Rugby rankings (free, no key)
     const rankings = await fetchWorldRugbyRankings()

@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   if (competitionKey !== 'nfl') return res.status(200).json({ fixtures: [], debug: 'competitionKey must be nfl' })
 
   const now = new Date()
-  const cutoff = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
+  const cutoff = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
 
   const upcoming = NFL_FIXTURES
     .filter(f => { const d = new Date(f.date); return d > now && d <= cutoff })
