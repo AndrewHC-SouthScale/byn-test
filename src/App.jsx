@@ -1830,35 +1830,51 @@ function HowToPlayScreen() {
   return (
     <div>
       <Section title="The basics">
-        Every round, you get <strong>1000 fresh credits</strong> added to whatever balance you already have in that competition. Credits are play-money only — nothing here is real money, in either direction. Around the app you'll see them called <strong>nuts</strong> (it's a BYN thing) — same credits, just our name for them.
+        Every round, you get <strong>1,000 fresh nuts</strong> added to whatever balance you already have in that competition. Nuts are play-money only — nothing here is real money, in either direction.
       </Section>
 
-      <Section title="You have to actually play">
-        You must stake at least <strong>50% of your total balance</strong> before the round locks (1 hour before the first match, race, or event starts). Bet less than that and the shortfall is forfeited — but you can never lose more than that 50%, even if you stake nothing at all. Anything you stake above the minimum, and any winnings, stay in your account and roll into the next round.
+      <Section title="The only rule: stake at least 50%">
+        You must stake at least <strong>50% of your total balance</strong> before the round locks. That's the only requirement. Bet less than that and the shortfall is forfeited — but you can never lose more than that 50%.
+        <br /><br />
+        Everything above 50% is completely up to you. <strong>You don't have to stake everything.</strong> You don't have to bet on every fixture. You can sit on 49% of your balance and use it only when you see value.
+      </Section>
+
+      <Section title="How you play is up to you">
+        There's no right or wrong way to use your nuts:
+        <br /><br />
+        <strong>Back your team or driver</strong> — if you just want to support Arsenal or Lando Norris, stake everything on them. You only need one pick to meet the minimum.
+        <br /><br />
+        <strong>Chase the value</strong> — if you spot a market where the crowd is wrong, put your nuts there and nowhere else.
+        <br /><br />
+        <strong>Spread the risk</strong> — stake small amounts across lots of fixtures to smooth out bad luck.
+        <br /><br />
+        <strong>Go all-in</strong> — stake everything on a single match and back your conviction fully.
+        <br /><br />
+        Whatever you choose, just make sure at least 50% is staked before lockout.
       </Section>
 
       <Section title="How a round works">
-        <strong>1. Open</strong> — markets are live, place bets on any outcome.<br />
-        <strong>2. Locked</strong> — betting closes 1 hour before the first event starts, no more changes.<br />
+        <strong>1. Open</strong> — markets are live, place bets on any outcome you like.<br />
+        <strong>2. Locked</strong> — betting closes 1 hour before the first event starts.<br />
         <strong>3. Settled</strong> — results come in, winners get paid, the next round begins.
       </Section>
 
-      <Section title="How the odds actually work">
-        Unlike a normal bookmaker, nobody at BYN sets the odds. Prices move automatically based on what everyone is betting — if a lot of nuts pile onto one outcome, that price rises and the others fall to compensate, since all outcomes in a market always add up to 100%.
+      <Section title="How the odds work">
+        Nobody at BYN sets the odds. Prices move automatically based on what everyone is betting — if lots of nuts pile onto one outcome, that price shortens and the others drift to compensate.
         <br /><br />
-        This means the percentage you see isn't a guess — it's literally what the crowd collectively believes right now. Bet early and you might get a better price than someone who waits until everyone agrees with you.
+        The percentage you see is what the crowd collectively believes right now. Bet early and you might get a better price before everyone else agrees with you.
       </Section>
 
       <Section title="How payouts work">
-        Whatever price you see when you place a bet is locked in for you — your payout doesn't change even if the price moves afterward. If your pick wins, you get paid based on that locked-in price. If it loses, that stake is gone. There's no in-between.
+        The price you see when you place a bet is locked in for you — your payout doesn't change even if the price moves afterward. Win and you get paid at that locked-in price. Lose and that stake is gone. Your winnings and any unspent nuts roll into the next round.
       </Section>
 
       <Section title="Seasons">
-        Each competition runs its own season at its own pace — weekly for leagues, round-by-round for tournaments, race-by-race for motorsport. At the end of a season, balances reset to 0 for everyone, so nobody carries an advantage into the next one. Your results live on in the season leaderboard, not in your balance.
+        Each competition runs its own season. At the end of a season, balances reset to zero for everyone — so nobody carries a big advantage into the next one. Your results live on in the season leaderboard, not in your balance.
       </Section>
 
       <Section title="Leagues & rankings">
-        Create a private league and invite friends with a code, or check the Rankings tab to see how you stack up globally, against your country, or against fellow fans of your favourite team. Everything is scored the same way — most nuts, most consistent finishes.
+        Create a private league and invite friends with a code, or check the Rankings tab to see how you stack up globally, by country, or against fellow fans of your favourite team.
       </Section>
     </div>
   );
