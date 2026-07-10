@@ -133,8 +133,48 @@ export const PGA_ROUNDS     = ["The Masters","PGA Championship","The Open","US O
 
 // ── Competitions ──────────────────────────────────────────────────────────────
 // active: true = visible in UI. Set false to hide without deleting.
+
+// ── English Football League team pools ────────────────────────────────────────
+export const TEAM_POOL_CHAMPIONSHIP = [
+  ["West Ham",       "Wolves",          [0.48, 0.26, 0.26]],
+  ["Burnley",        "Sheffield United", [0.45, 0.28, 0.27]],
+  ["Southampton",    "Middlesbrough",    [0.50, 0.26, 0.24]],
+  ["Wrexham",        "Norwich City",     [0.44, 0.27, 0.29]],
+  ["Derby County",   "Watford",          [0.46, 0.27, 0.27]],
+  ["Blackburn",      "Swansea City",     [0.48, 0.27, 0.25]],
+  ["Millwall",       "Cardiff City",     [0.47, 0.27, 0.26]],
+  ["Preston",        "Bristol City",     [0.46, 0.27, 0.27]],
+  ["Luton Town",     "QPR",              [0.49, 0.26, 0.25]],
+  ["Bolton",         "Lincoln City",     [0.50, 0.26, 0.24]],
+];
+export const TEAM_POOL_LEAGUE_ONE = [
+  ["Leicester City", "Oxford United",    [0.55, 0.25, 0.20]],
+  ["Stockport",      "Huddersfield",     [0.47, 0.27, 0.26]],
+  ["Barnsley",       "Wigan Athletic",   [0.46, 0.28, 0.26]],
+  ["Wycombe",        "Mansfield",        [0.45, 0.28, 0.27]],
+  ["Charlton",       "Peterborough",     [0.46, 0.28, 0.26]],
+  ["Exeter City",    "Cambridge Utd",    [0.48, 0.27, 0.25]],
+];
+export const TEAM_POOL_LEAGUE_TWO = [
+  ["Notts County",   "Bromley",          [0.50, 0.27, 0.23]],
+  ["AFC Wimbledon",  "Swindon Town",     [0.46, 0.28, 0.26]],
+  ["Colchester",     "Grimsby",          [0.47, 0.28, 0.25]],
+  ["Doncaster",      "Newport County",   [0.49, 0.27, 0.24]],
+  ["Crawley Town",   "Gillingham",       [0.46, 0.28, 0.26]],
+];
+export const TEAM_POOL_NATIONAL_LEAGUE = [
+  ["York City",      "Rochdale",         [0.50, 0.26, 0.24]],
+  ["Halifax Town",   "Ebbsfleet",        [0.48, 0.27, 0.25]],
+  ["Dag & Red",      "Maidstone",        [0.47, 0.28, 0.25]],
+  ["Solihull Moors", "Altrincham",       [0.46, 0.28, 0.26]],
+];
+
 export const COMPETITIONS = [
   { key: "epl",          category: "football",          name: "Premier League",       icon: "⚽", cadenceLabel: "Gameweek",   format: "three_way",         teamPool: TEAM_POOL_EPL,            midLabel: "Draw", special: false, baseLiquidity: 400, active: true  },
+  { key: "championship",    category: "football",          name: "Championship",         icon: "⚽", cadenceLabel: "Gameweek",   format: "three_way",         teamPool: TEAM_POOL_CHAMPIONSHIP, midLabel: "Draw", special: false, baseLiquidity: 320, active: true  },
+  { key: "league_one",      category: "football",          name: "League One",           icon: "⚽", cadenceLabel: "Gameweek",   format: "three_way",         teamPool: TEAM_POOL_LEAGUE_ONE,    midLabel: "Draw", special: false, baseLiquidity: 250, active: true  },
+  { key: "league_two",      category: "football",          name: "League Two",           icon: "⚽", cadenceLabel: "Gameweek",   format: "three_way",         teamPool: TEAM_POOL_LEAGUE_TWO,    midLabel: "Draw", special: false, baseLiquidity: 200, active: true  },
+  { key: "national_league", category: "football",          name: "National League",      icon: "⚽", cadenceLabel: "Matchday",   format: "three_way",         teamPool: TEAM_POOL_NATIONAL_LEAGUE, midLabel: "Draw", special: false, baseLiquidity: 150, active: true  },
   { key: "laliga",       category: "football",          name: "La Liga",              icon: "⚽", cadenceLabel: "Matchday",   format: "three_way",         teamPool: TEAM_POOL_LA_LIGA,        midLabel: "Draw", special: false, baseLiquidity: 380, active: true  },
   { key: "ucl",          category: "football",          name: "Champions League",     icon: "⚽", cadenceLabel: "Matchweek",  format: "three_way",         teamPool: TEAM_POOL_UCL,            midLabel: "Draw", special: false, baseLiquidity: 380, active: true  },
   { key: "fifa_wc",      category: "football",          name: "FIFA WC 26",           icon: "⚽", cadenceLabel: "Round",      format: "three_way_no_draw", teamPool: TEAM_POOL_FIFA_WC,                          special: false, baseLiquidity: 450, active: true  },

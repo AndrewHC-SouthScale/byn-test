@@ -78,7 +78,56 @@ function h2hScore(home, away) {
   return total > 0 ? score / total : 0.5
 }
 
-// ── Probability calculators ───────────────────────────────────────────────────
+// ── Championship 2026-27 team strength ratings ────────────────────────────────
+// Relegated from PL: West Ham, Burnley, Wolves
+// Promoted from L1: Bolton, Lincoln City + 1 more
+const CHAMPIONSHIP_RATINGS = {
+  'West Ham':          85, 'Wolves':           83, 'Southampton':      78,
+  'Sheffield United':  76, 'Wrexham':          75, 'Burnley':          74,
+  'Middlesbrough':     73, 'Derby County':     72, 'Luton Town':       71,
+  'Watford':           70, 'Blackburn':        70, 'Norwich City':     69,
+  'Millwall':          68, 'Bristol City':     68, 'Cardiff City':     66,
+  'Preston':           67, 'Swansea City':     65, 'QPR':              64,
+  'Bolton':            70, 'Lincoln City':     65, 'Plymouth Argyle':  63,
+  'Stoke City':        62, 'Sheffield Wednesday': 60, 'Coventry City': 66,
+}
+
+// ── League One 2026-27 team strength ratings ──────────────────────────────────
+// Relegated from Championship: Oxford United, Leicester City + 1 more
+const LEAGUE_ONE_RATINGS = {
+  'Leicester City':   83, 'Oxford United':    70, 'Stockport County': 72,
+  'Huddersfield':     71, 'Barnsley':         69, 'Wigan Athletic':   68,
+  'Wycombe':          65, 'Mansfield Town':   65, 'Charlton Athletic':64,
+  'Peterborough':     67, 'Exeter City':      66, 'Cambridge Utd':    63,
+  'Rotherham':        62, 'Fleetwood Town':   60, 'Burton Albion':    61,
+  'Shrewsbury':       59, 'Bristol Rovers':   60, 'Port Vale':        58,
+  'Stevenage':        62, 'Notts County':     65, 'Bromley':          63,
+  'Reading':          66, 'Leyton Orient':    64, 'Crawley Town':     59,
+}
+
+// ── League Two 2026-27 team strength ratings ──────────────────────────────────
+const LEAGUE_TWO_RATINGS = {
+  'AFC Wimbledon':    66, 'Swindon Town':     65, 'Doncaster':        64,
+  'Grimsby Town':     62, 'Colchester':       61, 'Newport County':   60,
+  'Gillingham':       62, 'Salford City':     63, 'Bradford City':    61,
+  'Carlisle United':  60, 'Morecambe':        58, 'Tranmere':         59,
+  'Barrow':           58, 'MK Dons':          63, 'Harrogate':        57,
+  'Sutton United':    59, 'Forest Green':     56, 'Chesterfield':     64,
+  'Accrington':       55, 'Rochdale':         63, 'York City':        66,
+  'Dag & Red':        62, 'Boreham Wood':     58, 'Ebbsfleet':        57,
+}
+
+// ── National League 2026-27 team strength ratings ─────────────────────────────
+const NATIONAL_LEAGUE_RATINGS = {
+  'York City':        66, 'Rochdale':         64, 'Halifax Town':     63,
+  'Dag & Red':        62, 'Maidstone':        61, 'Solihull Moors':   60,
+  'Altrincham':       60, 'Ebbsfleet':        59, 'Wealdstone':       58,
+  'Dover Athletic':   57, 'Bromley':          65, 'FC Halifax':       62,
+  'Hartlepool':       61, 'Woking':           58, 'Southend United':  60,
+  'Gateshead':        59, 'Eastleigh':        57, 'Torquay':          55,
+  'Maidenhead':       56, 'Fylde':            57, 'Kidderminster':    55,
+  'Spennymoor':       58, 'Boreham Wood':     60, 'Bath City':        55,
+}
 function internationalProb(home, away, neutral = true) {
   const pA = FIFA[home] ?? 1400
   const pB = FIFA[away] ?? 1400
@@ -104,12 +153,19 @@ function knockoutProb(home, away) {
 function clubThreeWay(home, away, ratings, drawRate = 0.26) {
   const rH = ratings[home] ?? 70
   const rA = ratings[away] ?? 70
-  const homeAdv = 4 // home advantage in rating points
+  const homeAdv = 4
   const winProb = 1 / (1 + Math.pow(10, -((rH + homeAdv) - rA) / 15))
   const h = winProb * (1 - drawRate)
   const a = (1 - winProb) * (1 - drawRate)
   const t = h + drawRate + a
   return [Math.round(h/t*1000)/1000, Math.round(drawRate/t*1000)/1000, Math.round(a/t*1000)/1000]
+}
+
+// Rating map per competition key
+const CLUB_RATINGS = {
+  epl: EPL_RATINGS, laliga: LALIGA_RATINGS, ucl: UCL_RATINGS,
+  championship: CHAMPIONSHIP_RATINGS, league_one: LEAGUE_ONE_RATINGS,
+  league_two: LEAGUE_TWO_RATINGS, national_league: NATIONAL_LEAGUE_RATINGS,
 }
 
 // ── Fixture schedules ──────────────────────────────────────────────────────────
@@ -143,7 +199,49 @@ const FIXTURES = {
     { home: 'Real Betis',     away: 'Celta Vigo',      date: '2026-08-16T19:00:00Z', format: 'three_way' },
     { home: 'Villarreal',     away: 'Sevilla',         date: '2026-08-16T21:00:00Z', format: 'three_way' },
   ],
-  ucl: [
+  // EFL Championship — GW1 Aug 14-17 2026
+  // Fixtures released June 25 — Wolves vs Blackburn confirmed (Sky Sports opener)
+  // West Ham at Burnley confirmed. Others approximate.
+  championship: [
+    { home: 'Wolves',          away: 'Blackburn',      date: '2026-08-14T19:45:00Z', format: 'three_way' },
+    { home: 'Burnley',         away: 'West Ham',       date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Southampton',     away: 'Derby County',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Middlesbrough',   away: 'Norwich City',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Sheffield United',away: 'Watford',        date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Millwall',        away: 'Stoke City',     date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Cardiff City',    away: 'Swansea City',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Luton Town',      away: 'Preston',        date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Wrexham',         away: 'QPR',            date: '2026-08-16T15:00:00Z', format: 'three_way' },
+    { home: 'Bolton',          away: 'Bristol City',   date: '2026-08-16T15:00:00Z', format: 'three_way' },
+  ],
+  // EFL League One — GW1 Aug 14-16 2026
+  league_one: [
+    { home: 'Leicester City',  away: 'Stockport County', date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Oxford United',   away: 'Huddersfield',     date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Barnsley',        away: 'Wycombe',          date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Wigan Athletic',  away: 'Peterborough',     date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Charlton Athletic',away:'Leyton Orient',    date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Exeter City',     away: 'Mansfield Town',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Reading',         away: 'Rotherham',        date: '2026-08-16T15:00:00Z', format: 'three_way' },
+    { home: 'Notts County',    away: 'Bromley',          date: '2026-08-16T15:00:00Z', format: 'three_way' },
+  ],
+  // EFL League Two — GW1 Aug 14-16 2026
+  league_two: [
+    { home: 'AFC Wimbledon',   away: 'Swindon Town',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Doncaster',       away: 'Grimsby Town',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Colchester',      away: 'Newport County', date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Gillingham',      away: 'Salford City',   date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Bradford City',   away: 'MK Dons',        date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Chesterfield',    away: 'York City',      date: '2026-08-16T15:00:00Z', format: 'three_way' },
+  ],
+  // National League — GW1 approx mid-Aug 2026
+  national_league: [
+    { home: 'York City',       away: 'Rochdale',       date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Halifax Town',    away: 'Maidstone',      date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Dag & Red',       away: 'Solihull Moors', date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Hartlepool',      away: 'Altrincham',     date: '2026-08-15T14:00:00Z', format: 'three_way' },
+    { home: 'Ebbsfleet',       away: 'Wealdstone',     date: '2026-08-16T15:00:00Z', format: 'three_way' },
+  ],
     // Matchweek 1 — mid-Sep 2026 (dates TBC)
     { home: 'Real Madrid',   away: 'Bayern Munich',   date: '2026-09-16T20:00:00Z', format: 'three_way' },
     { home: 'Man City',      away: 'PSG',             date: '2026-09-16T20:00:00Z', format: 'three_way' },
@@ -163,7 +261,7 @@ export default async function handler(req, res) {
 
   const now = new Date()
   const cutoff = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
-  const ratings = competitionKey === 'epl' ? EPL_RATINGS : competitionKey === 'laliga' ? LALIGA_RATINGS : UCL_RATINGS
+  const ratings = CLUB_RATINGS[competitionKey]
 
   const allFuture = schedule.filter(f => new Date(f.date) > now).sort((a,b) => new Date(a.date) - new Date(b.date))
   const upcoming = allFuture.filter(f => new Date(f.date) <= cutoff)
