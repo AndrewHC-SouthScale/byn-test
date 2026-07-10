@@ -1103,8 +1103,8 @@ export default function PlatformMock() {
               <div style={{ padding: "12px 16px 4px" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#5E8775", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Competitions</div>
               {/* All competitions grouped by category */}
-              {CATEGORIES.filter(cat => COMPETITIONS.some(c => c.category === cat.key)).map((cat) => {
-                const catComps = COMPETITIONS.filter(c => c.category === cat.key)
+              {CATEGORIES.filter(cat => COMPETITIONS.some(c => c.category === cat.key && c.active)).map((cat) => {
+                const catComps = COMPETITIONS.filter(c => c.category === cat.key && c.active)
                 return (
                   <div key={cat.key}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "#3a5a4a", letterSpacing: 1.5, textTransform: "uppercase", padding: "12px 12px 4px", marginTop: 4 }}>{cat.name}</div>
@@ -1152,7 +1152,7 @@ export default function PlatformMock() {
         {/* Single-tier competition buttons — user's active comps first, then rest by category */}
         {tab === "markets" && (() => {
           const catOrder = CATEGORIES.map(c => c.key)
-          const allComps = COMPETITIONS.slice().sort((a, b) => catOrder.indexOf(a.category) - catOrder.indexOf(b.category))
+          const allComps = COMPETITIONS.filter(c => c.active).sort((a, b) => catOrder.indexOf(a.category) - catOrder.indexOf(b.category))
           // User is "active" in a comp if they have bets or non-zero balance
           const userActive = allComps.filter((c) => {
             const d = compData[c.key];
