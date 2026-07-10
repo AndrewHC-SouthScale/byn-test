@@ -1,36 +1,33 @@
 # BYN — Project Backlog
 
-A running list of tasks, ideas, and improvements. Items are grouped by category and roughly prioritised within each group. Move items to the pre-launch checklist in `decisions.md` when they become blockers.
-
----
-
-## 🔴 In progress / immediate
-
-- [x] Set up Resend for transactional email (`noreply@bynapp.online` sending, welcome and round settled emails live)
-- [x] Fix southscale.co.uk legal page routing (404 on `/legal/byn-privacy` and `/legal/byn-terms`)
+A running list of tasks, ideas, and improvements. Items are grouped by category and roughly prioritised within each group.
 
 ---
 
 ## 🟣 User account management
 
-- [x] **Delete Account button** — added to Profile tab with 60-day cooling-off period, confirmation email, and cancel option. Google account blocked from re-registration during cooling-off period.
+- [x] **Delete Account button** — added to Profile tab with 60-day cooling-off period, confirmation email, and cancel option.
 - [x] **Privacy Policy link** — added to Profile tab linking to southscale.co.uk/legal/byn-privacy
 - [x] **Terms of Service link** — added to Profile tab linking to southscale.co.uk/legal/byn-terms
+- [ ] **Per-league ranking in settlement email** — round settled email currently shows balance and payout only. Add ranking breakdown per league the user is in (global, country, private leagues). Show as a table: "Global: 14th · England: 3rd · The Lads: 1st 🏆".
 
 ---
 
 ## 📊 Data models & probability
 
-- [ ] **MotoGP probability model** — similar to F1 model. Research free MotoGP data API (motogp.com/api or similar). Components: current season championship points (50%), previous season standings (30%), circuit/track history (20%). Only needed when MotoGP is activated — The Odds API doesn't cover it.
-- [ ] **NASCAR probability model** — track history is especially important in NASCAR (drivers have very different strengths by track type: superspeedways, short tracks, road courses). Research free NASCAR data API. Components: current season points (40%), previous season (20%), track-specific history (40% — higher weight than other sports).
-- [ ] **NBA probability model** — only needed if The Odds API doesn't cover NBA when activated in Oct 2026. BallDontLie API (balldontlie.io) is free and covers NBA standings and game results. Components: current season win % (50%), home/away record (20%), head-to-head recent form (30%).
-- [ ] **Sports not on The Odds API** — EPL, La Liga, World Cup, NFL, ATP, WTA, The Open, Champions League are all covered by The Odds API with de-vigged bookmaker probabilities — no model needed, bookmaker odds are better than anything we'd build. Only build models for sports The Odds API doesn't cover (F1 ✅, MotoGP, NASCAR, potentially rugby/cricket leagues).
-- [ ] **Six Nations / Premiership Rugby probability model** — research free rugby data API. Components: current tournament standings (50%), historical H2H between these two teams (30%), home advantage (20%).
-- [ ] **IPL probability model** — research free cricket API (cricbuzz, cricketdata.org). Components: current tournament form (50%), venue/pitch history (30%), team H2H (20%).
-
-- [x] **Reduce live odds API calls** — fixtures now cached in Supabase `round_fixtures` table. API called once per competition per round only. Subsequent loads (page refresh, re-navigation) read from cache. Cache valid for 24 hours. API skipped entirely if round already seeded (`cd.liveSeeded === true`).
-- [x] **F1 alternative odds source** — Uses OpenF1 (free, no API key) via `/api/f1-fixtures.js` serverless function. Shows all 20 drivers with full names and team names (e.g. "Lando Norris · McLaren"). Probability model combines: current 2026 season points (50%), 2025 final standings (30%), circuit-specific history (20%). Loads on app mount and refreshes automatically on next round. API-Sports free plan does not include current season data.
-- [ ] **F1 demo simulation limitation** — live F1 fixture data loads correctly but each demo round always shows the current next real-world race (e.g. Belgium) since OpenF1 returns the next upcoming race regardless of demo round number. In production this is correct behaviour — rounds advance with real race weekends. Not a bug, just a demo limitation. Accept as-is until real round advancement is built.
+- [x] **Own probability models for all sports** — removed all dependency on The Odds API. Built in-house models for all competitions:
+  - Football: FIFA rankings + ELO model (FIFA WC, Euros, EPL, La Liga, UCL)
+  - Rugby (international): World Rugby rankings API (free) + H2H (Nations Championship ✅, Rugby Championship ✅, Six Nations ✅, Rugby WC ✅)
+  - Rugby (club): Team strength ratings (URC ✅, Prem Rugby ✅, Super Rugby Pacific ✅)
+  - F1: OpenF1 (free, no key) + championship standings probability model ✅
+  - Tennis: ATP/WTA rankings + grass surface adjustment (Wimbledon ✅)
+  - Golf: OWGR + course/links history (The Open ✅)
+  - NFL: Team power ratings ✅
+- [ ] **MotoGP probability model** — research free MotoGP data API. Components: championship points (50%), previous season (30%), circuit history (20%).
+- [ ] **NASCAR probability model** — track history weighted heavily (40%). Research free NASCAR data API.
+- [ ] **NBA probability model** — activate October 2026. BallDontLie API (free) covers standings and results. Components: win % (50%), home/away record (20%), H2H form (30%).
+- [ ] **IPL probability model** — research free cricket API (cricbuzz, cricketdata.org). Components: form (50%), venue/pitch history (30%), H2H (20%).
+- [ ] **F1 demo simulation limitation** — demo rounds always show current next real-world race. Expected behaviour — rounds advance with real race weekends in production.
 
 ---
 
@@ -38,24 +35,25 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 - [ ] **Apple Sign In** — required before App Store submission (App Store Guideline 4.8)
 - [ ] **Stripe integration** — league slot purchases (packs of 3), company-sponsored leagues
-- [ ] **Scheduled jobs** — server-side lockout enforcement (currently demo button only), auto-settlement after results come in, weekly topup at round start
-- [ ] **Real bot management** — remove bot simulation from App.jsx before go-live (see pre-launch checklist)
+- [ ] **Scheduled jobs** — server-side lockout enforcement, auto-settlement after results, weekly topup at round start
+- [ ] **Real bot management** — remove bot simulation from App.jsx before go-live
 - [ ] **Transfer Supabase** to SouthScale business account once incorporated
-- [ ] **Server-side ad verification** — verify ad completion via ad network callback before crediting nuts (currently client-side only)
-- [ ] **Push notifications** — lockout reminders, settlement alerts (mobile only, defer to native app)
-- [ ] **Re-enable Odds API** — remove early `return []` in `oddsService.js` when ready to go live
-- [ ] **Upgrade Odds API plan** — free tier is 500 requests/month, upgrade before live
+- [ ] **Server-side ad verification** — verify ad completion via ad network callback before crediting nuts
+- [ ] **Push notifications** — lockout reminders, settlement alerts (defer to native app)
+- [ ] **Reminder cron job** — `reminders` table stores user reminders with `reminder_date` and `sent: false`. Need scheduled job to send email 7 days before fixture and mark `sent: true`. Options: Vercel Cron (Pro plan), GitHub Actions schedule, or Supabase pg_cron.
+- [ ] **Set real season lengths** — EPL = 38, La Liga = 38, NFL = 17, replace `SEASON_LENGTH_DEMO = 4`
+- [ ] **Remove demo simulator buttons** — "Simulate results", "Advance to lockout" before go-live
 
 ---
 
 ## 🟡 Features
 
-- [ ] **Ad network integration** — wire up Google AdMob (mobile) or Google Ad Manager (web) for the nuts boost ad views
-- [ ] **Company-sponsored leagues** — businesses pay to create branded leagues, don't count against player cap
-- [ ] **In-play market updates** — update prices during live events (requires websocket or polling)
-- [ ] **Outright winner markets** — season-long competition winner (e.g. who wins the EPL) alongside weekly round markets
+- [ ] **Ad network integration** — wire up Google AdMob (mobile) or Google Ad Manager (web) for nuts boost ad views
+- [ ] **Company-sponsored leagues** — businesses pay to create branded leagues
+- [ ] **In-play market updates** — update prices during live events (websocket or polling)
+- [ ] **Outright winner markets** — season-long competition winner alongside weekly round markets
 - [ ] **Position selling** — allow users to sell back a bet before lockout
-- [ ] **Shareable result cards** — generate a shareable image after round settlement showing wins/losses
+- [ ] **Shareable result cards** — generate shareable image after settlement
 - [ ] **Stats page** — personal performance stats, best picks, historical balance charts
 - [ ] **Notifications centre** — in-app notification history (round results, league activity)
 
@@ -63,50 +61,52 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 ## 🟢 Sports & competitions
 
-- [ ] **Re-enable live odds** when EPL/La Liga/NFL seasons start (August/September) — odds API already wired, just remove the `return []`
-- [ ] **Set real season lengths** — EPL = 38, La Liga = 38, NFL = 17, replace `SEASON_LENGTH_DEMO = 4`
-- [ ] **MotoGP** — activate when API coverage available
-- [ ] **NASCAR** — activate when API coverage available
-- [ ] **NBA** — activate when NBA season starts (October)
-- [ ] **ATP/WTA** — rename from Wimbledon to correct tournament name after Wimbledon ends
-- [ ] **The Open** — rename PGA after The Open concludes
-- [ ] **World Cup** — revert to `three_way` format (with Draw) for group stage next tournament
-- [ ] **Champions League** — activate for 2026/27 season
-- [ ] **Six Nations** — activate for 2027 tournament (February)
-- [ ] **Rugby World Cup** — activate for 2027 tournament
+- [ ] **Wimbledon → rename** — update tennis competition name to US Open / Australian Open when tournament changes
+- [ ] **The Open → rename** — update PGA competition name after The Open concludes
+- [ ] **MotoGP** — activate when probability model is built
+- [ ] **NASCAR** — activate when probability model is built
+- [ ] **NBA** — activate October 2026
+- [ ] **Update NFL fixtures** — GW1 fixtures are placeholders, update when official schedule released
+- [ ] **Update Premiership Rugby fixtures** — fixture list releasing July 2026, update `PREM_FIXTURES` in `rugby-fixtures.js`
+- [ ] **Update URC fixtures** — full round-by-round schedule available, add rounds 2+ to `URC_FIXTURES`
+- [ ] **Champions League** — activate September 2026
+- [ ] **Six Nations** — activate February 2027
+- [ ] **Super Rugby Pacific** — activate February 2027
+- [ ] **Rugby World Cup** — activate 2027
 
 ---
 
 ## 🔵 UI / UX
 
-- [ ] **Slow initial load** — Vercel edge cache headers added (repeat visits now instant). Bundle is 125KB gzipped. Further reduction options: replace `lucide-react` with inline SVGs (~50KB saving), or replace Supabase JS client with direct fetch calls (~150KB saving). Defer until user feedback indicates load time is a real problem.
-- [x] **Round nuts to whole numbers** — `Math.round()` already applied consistently throughout the display layer. Confirmed no decimal values showing in UI.
-
-## 🛠️ Internal admin & reporting
-
-- [x] **Admin reporting dashboard** — live at southscale.co.uk/admin. Password protected. Shows users, bets, competitions, rounds, leagues, engagement, and platform health. Data pulled from Supabase via service role key through Vercel serverless function. Not linked publicly.
-
-- [ ] **Remove demo simulator buttons** — "Simulate results", "Advance to lockout" etc. before go-live
-- [x] **Landing page for bynapp.online** — live at bynapp.online root. App served at bynapp.online/app. Includes phone mockup, how it works, sports list, features, and App Store/Google Play placeholders.
-- [ ] **Reminder cron job** — the `reminders` table stores user reminders with `reminder_date` (7 days before fixture) and `sent: false`. Need a scheduled job to query `reminders WHERE reminder_date <= now() AND sent = false`, send email to each user, and mark `sent: true`. Options: Vercel Cron (`vercel.json` `crons` field, runs on Pro plan), GitHub Actions scheduled workflow, or Supabase pg_cron extension. Vercel Cron is simplest given current infrastructure. — round settled email currently shows balance and payout only. Add ranking breakdown per league the user is in (global, country, private leagues). Requires fetching user's league memberships from Supabase at settlement time and calculating their rank in each. Show as a table: "Global: 14th · England: 3rd · The Lads: 1st 🏆". and wired into market cards (betting and settled stages). Shows "Today 20:00", "Tomorrow 15:00", "Sat 12 Jul 17:30" etc. Working for F1 (confirmed). **Needs verification for football/tennis/golf once Odds API is re-enabled** — demo fixtures have no kickoff data so times only appear with live fixtures.
+- [ ] **Slow initial load** — bundle is 125KB gzipped. Vercel edge cache added. Further options: replace lucide-react with inline SVGs, or replace Supabase JS client with direct fetch.
+- [x] **Round nuts to whole numbers** — `Math.round()` applied throughout display layer.
+- [ ] **Kickoff time display** — working for F1 and all models. Needs verification once more competitions have live fixtures.
 - [ ] **Bet history tab** — view all past bets within a competition, not just current round
-- [ ] **Onboarding tour** — guided first-time user experience (highlight key features on first login)
+- [ ] **Onboarding tour** — guided first-time user experience on first login
 - [ ] **Dark/light mode** — currently dark only
 - [ ] **Profile photo** — pull from Google account and display in header
 - [ ] **League chat** — simple message thread within a private league
 
 ---
 
+## 🛠️ Internal admin & reporting
+
+- [x] **Admin dashboard** — live at southscale.co.uk/admin. Three tabs: Dashboard (auto-refreshes every 5 min), Fixtures (all competitions with next date, server-side proxy to avoid CORS), Backlog (live from GitHub). Password protected.
+- [x] **Landing page** — live at bynapp.online. App served at bynapp.online/app.
+- [x] **Remind Me feature** — "No fixtures" card shows next fixture date and Remind Me button. Stores reminder in Supabase, sends confirmation email. Browser notification permission requested.
+
+---
+
 ## ⚙️ Infrastructure & accounts
 
-- [x] **Set up Resend** — `noreply@bynapp.online` sending, welcome email and round settled email wired up
-- [ ] **Set up Google Workspace** or confirm M365 suffices for all business email needs
-- [ ] **Incorporate SouthScale** — Companies House registration (£50, 24-48 hours)
+- [x] **Resend email** — `noreply@bynapp.online`, welcome + settlement emails live, sponsor banner injected from Supabase
+- [ ] **Set up Google Workspace** or confirm M365 suffices for business email
+- [ ] **Incorporate SouthScale** — Companies House (£50, 24-48 hours)
 - [ ] **Update legal documents** — add registered address and company number once incorporated
 - [ ] **Transfer Supabase** — to SouthScale business account post-incorporation
-- [ ] **GDPR / ICO registration** — register with ICO as a data controller (required if processing UK personal data commercially, £40/year for small organisations)
-- [ ] **App Store Connect account** — set up Apple Developer account ($99/year) to begin iOS submission process
-- [ ] **Google Play Console account** — set up for Android submission ($25 one-time)
+- [ ] **GDPR / ICO registration** — register with ICO as data controller (£40/year)
+- [ ] **App Store Connect account** — Apple Developer ($99/year)
+- [ ] **Google Play Console** — Android submission ($25 one-time)
 
 ---
 
@@ -116,57 +116,35 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 - **Head-to-head challenges** — challenge a specific friend to the same market
 - **Tipster leaderboard** — separate ranking for best single-round return (not cumulative)
 - **Expert picks** — optional "pundit mode" where featured users' picks are highlighted
-- **Watch party mode** — live updates during events showing how prices are moving in real time
-- **BYN Wrapped** — end-of-season summary card (Spotify Wrapped style) showing your best moments
-- **API for third-party leagues** — allow companies to embed a BYN league widget in their own apps
-- **Crypto nuts** — optional NFT-backed nuts for users who want provable scarcity (much later, if ever)
+- **Watch party mode** — live updates during events showing how prices are moving
+- **BYN Wrapped** — end-of-season summary card (Spotify Wrapped style)
+- **API for third-party leagues** — allow companies to embed a BYN league widget
 
 ---
 
 ## ✅ Completed
 
-- [x] Full mock platform with LMSR pricing
-- [x] Google OAuth login (new user setup + returning user flow)
-- [x] User profiles persisting to Supabase
-- [x] Wallet balances persisting to Supabase
-- [x] Bets saving to Supabase
-- [x] Bet settlement writing to DB
+- [x] Full platform with LMSR pricing, Google OAuth, profiles, wallets, bets, settlement — all persisting to Supabase
 - [x] Season reset (balances + leaderboards)
-- [x] Live odds from The Odds API (World Cup, Wimbledon, The Open)
-- [x] Unique display names with normalised uniqueness check
-- [x] Referral system (500 nuts each)
-- [x] Ad boost (50 nuts per view, 1000/round cap)
+- [x] Referral system and ad boost
 - [x] Private leagues with invite codes
-- [x] Profile tab with user info, favourite teams, league slots, ad boost
-- [x] Deployed to bynapp.online via Vercel
-- [x] GitHub transferred to SouthScale-HQ
-- [x] Google Cloud transferred to andrew@southscale.co.uk
-- [x] SouthScale company website live at southscale.co.uk
-- [x] Privacy Policy and Terms of Service drafted and hosted at southscale.co.uk
-- [x] Transactional email via Resend — welcome and round settled emails from noreply@bynapp.online
-- [x] Delete Account button on Profile tab — 60-day cooling-off, confirmation email, cancel option
-- [x] Privacy Policy and Terms of Service links added to Profile tab
-- [x] southscale.co.uk legal page routing fixed
-- [x] Live odds API calls cached in Supabase — one API call per competition per round maximum
-- [x] Admin reporting dashboard live at southscale.co.uk/admin
-- [x] Landing page live at bynapp.online — app served at bynapp.online/app
-- [x] F1 integration via OpenF1 — all 20 drivers, full names, team names, real race name and kickoff time
-- [x] F1 probability model — current season 50%, previous season 30%, circuit history 20%
-- [x] Kickoff time display on market cards — working for F1, pending Odds API re-enable for other sports
-- [x] Season rankings reset at end of season
-- [x] Sponsor banner in all transactional emails — fetched from `sponsor_slots` table, falls back to house ad, positioned above footer, labelled "Sponsored"
-- [x] Settlement email subject changed to "Round X settled — See your results"
-- [x] Nut values rounded to whole numbers in settlement emails
-- [x] Bet settlement writing to DB fixed — using update instead of upsert
-- [x] Simplified navigation — single-tier competition buttons (3 visible), pizza stack menu (☰) for all competitions + Games/Leagues/Rankings/Profile/How to Play/Sign out
-- [x] Competition row shows user's active competitions first, then rest by default order
-- [x] Rankings tab — competition selector, global/country/team filters, league rankings shown below
-- [x] Leagues tab — expandable league cards with full leaderboard, invite code, and sponsor slot
-- [x] Balance/commitment card hidden on Leagues and Rankings tabs
-- [x] Competition row hidden on Leagues and Rankings tabs
-- [x] Team filter tab hidden in Rankings when no teams applicable or team not yet selected
-- [x] ATP and WTA combined into single Wimbledon competition — matches prefixed [M]/[W]
-- [x] Rankings/Leagues tabs accessible via pizza stack menu only (no redundant tab buttons on main screen)
-- [x] Kickoff time display on market cards — working for F1, pending Odds API re-enable for other sports
-- [x] Season rankings reset at end of season
-- [x] Odds API calls cached in Supabase — one API call per competition per round maximum
+- [x] Deployed to bynapp.online via Vercel, GitHub under SouthScale-HQ
+- [x] SouthScale company website and legal pages live at southscale.co.uk
+- [x] Transactional email via Resend — welcome, settlement, deletion, reminder confirmation
+- [x] Sponsor banner in all emails — fetched from `sponsor_slots` table
+- [x] Delete Account button — 60-day cooling-off, GDPR compliant
+- [x] Fixture caching in Supabase — one API/model call per competition per round
+- [x] Own probability models for all sports — no Odds API dependency
+- [x] F1 — OpenF1 + championship model, all 22 drivers, correct 2026 grid
+- [x] Rugby — World Rugby rankings model, Nations Championship + Rugby Championship fixtures
+- [x] All rugby competitions with fixtures: URC, Prem Rugby, Six Nations, Super Rugby, Rugby WC
+- [x] Football model — FIFA rankings + ELO, FIFA WC live QFs, EPL/La Liga/UCL GW1
+- [x] Tennis model — ATP/WTA rankings, Wimbledon SFs/Finals
+- [x] Golf model — OWGR + links course history, The Open field
+- [x] NFL model — team power ratings, season schedule
+- [x] Admin dashboard with auto-refresh, fixtures tab, backlog tab
+- [x] All competitions shown (no active flag restriction), grouped by sport in pizza stack menu
+- [x] No fixtures card with next date and Remind Me button (email reminder + browser permission)
+- [x] Simplified navigation — 3 competition buttons, pizza stack menu grouped by category
+- [x] Rankings and Leagues tabs with full details
+- [x] Landing page at bynapp.online with phone mockup, features, sports list
