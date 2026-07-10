@@ -268,11 +268,17 @@ const FIXTURES = {
     { home: 'Boston United',    away: 'Chorley',          date: '2026-08-16T14:00:00Z', format: 'three_way' },
     { home: 'Blyth Spartans',   away: 'Hereford',         date: '2026-08-16T14:00:00Z', format: 'three_way' },
   ],
-    // Matchweek 1 — mid-Sep 2026 (dates TBC)
+  // Champions League — Matchweek 1 mid-Sep 2026 (dates TBC)
+  ucl: [
     { home: 'Real Madrid',   away: 'Bayern Munich',   date: '2026-09-16T20:00:00Z', format: 'three_way' },
     { home: 'Man City',      away: 'PSG',             date: '2026-09-16T20:00:00Z', format: 'three_way' },
     { home: 'Arsenal',       away: 'Inter Milan',     date: '2026-09-17T20:00:00Z', format: 'three_way' },
     { home: 'Barcelona',     away: 'Juventus',        date: '2026-09-17T20:00:00Z', format: 'three_way' },
+  ],
+  // Euros — 2028, dates TBC
+  euros: [
+    { home: 'England',  away: 'Germany',  date: '2028-06-14T20:00:00Z', format: 'three_way' },
+    { home: 'France',   away: 'Spain',    date: '2028-06-15T20:00:00Z', format: 'three_way' },
   ],
 }
 
