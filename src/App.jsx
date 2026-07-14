@@ -1555,9 +1555,16 @@ function BetList({ bets, markets }) {
       <div style={{ fontSize: 11, color: "#7FBFA0", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Your bets this round</div>
       {bets.map((b, i) => {
         const m = markets.find((mk) => mk.id === b.marketId);
+        const oddsPct = typeof b.priceAtExecution === "number" ? Math.round(b.priceAtExecution * 100) : null;
+        const multiplier = typeof b.priceAtExecution === "number" && b.priceAtExecution > 0 ? (1 / b.priceAtExecution) : null;
         return (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", color: "#F4F7F2", borderBottom: "1px solid #16352A" }}>
-            <span>{m.name} &middot; {m.outcomes[b.outcome]}</span>
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12, padding: "6px 0", color: "#F4F7F2", borderBottom: "1px solid #16352A" }}>
+            <span>
+              {m.name} &middot; {m.outcomes[b.outcome]}
+              {oddsPct !== null && (
+                <span style={{ color: "#7FBFA0", fontSize: 11 }}> &middot; placed at {oddsPct}%{multiplier ? ` (${multiplier.toFixed(2)}x)` : ""}</span>
+              )}
+            </span>
             <span className="mono">{Math.round(b.stake)} nuts</span>
           </div>
         );
