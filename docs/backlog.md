@@ -9,7 +9,11 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 - [x] **Delete Account button** — added to Profile tab with 60-day cooling-off period, confirmation email, and cancel option.
 - [x] **Privacy Policy link** — added to Profile tab linking to southscale.co.uk/legal/byn-privacy
 - [x] **Terms of Service link** — added to Profile tab linking to southscale.co.uk/legal/byn-terms
-- [ ] **Per-league ranking in settlement email** — round settled email currently shows balance and payout only. Add ranking breakdown per league the user is in (global, country, private leagues). Show as a table: "Global: 14th · England: 3rd · The Lads: 1st 🏆".
+- [ ] **Per-league ranking in settlement email** — round settled email currently shows balance and payout only. Add ranking breakdown per league the user is in (global, country, private leagues). Show as a table: "Global: 14th · England: 3rd · The Lads: 1st 🏆". **Blocked on:**
+  - Auto-settlement job (see Backend) — results are currently resolved client-side per-browser via `Math.random()`, so there's no single shared outcome per round for a ranking to be computed against, and `saveRoundStandings()` (already written in `roundService.js`) is never actually called.
+  - `groups`/`group_members` tables don't exist yet — leagues currently live only in React state (`App.jsx`), not Supabase.
+  - `profiles.country` doesn't exist yet — country is currently local state only.
+  - Once unblocked: add global/country/per-league rank queries against `round_standings`, wire into settlement flow before the `sendRoundSettledEmail` call in `App.jsx` (~line 805), extend email template + `sendRoundSettledEmail()` signature in `emailService.js`.
 
 ---
 
@@ -35,7 +39,9 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 
 - [ ] **Apple Sign In** — required before App Store submission (App Store Guideline 4.8)
 - [ ] **Stripe integration** — league slot purchases (packs of 3), company-sponsored leagues
-- [ ] **Scheduled jobs** — server-side lockout enforcement, auto-settlement after results, weekly topup at round start
+- [ ] **Scheduled jobs** — server-side lockout enforcement, auto-settlement after results, weekly topup at round start. Auto-settlement is the bigger of the three: currently each user's browser resolves fixture outcomes independently via `Math.random()`, so two users can see different results for the same round, and `round_standings` is never actually written (`saveRoundStandings()` exists in `roundService.js` but is called nowhere). Needs a single server-side resolution per round from real results, applied identically to all users, with standings persisted. Also unblocks per-league settlement email ranking (see User account management).
+- [ ] **Persist leagues to Supabase** — `groups` (private leagues) currently live only in React state in `App.jsx` (`useState([])`), never written to the DB. Need real `groups` and `group_members` tables (name, invite code, status, member list) so leagues survive a page refresh and are queryable server-side (required for per-league settlement email ranking, admin visibility, etc).
+- [ ] **Add `profiles.country`** — country is currently local/client state only, not a DB column. Needed for real "country" leaderboard filtering server-side (currently done by filtering an in-memory array that includes simulated bots).
 - [ ] **Real bot management** — remove bot simulation from App.jsx before go-live
 - [ ] **Transfer Supabase** to SouthScale business account once incorporated
 - [ ] **Server-side ad verification** — verify ad completion via ad network callback before crediting nuts
