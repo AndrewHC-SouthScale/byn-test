@@ -9,7 +9,16 @@ A running list of tasks, ideas, and improvements. Items are grouped by category 
 Rough dependency order for getting to a credible Google Play submission. Each phase unblocks the next — items within a phase can happen in parallel.
 
 **Phase 1 — Make multiplayer real** (nothing after this matters if this isn't true)
-1. **Auto-settlement job** (Backend) — single server-side result per round instead of per-browser `Math.random()`. This is the foundation everything else in this list sits on.
+0. **Results feed spike** (NEW — prerequisite to #1) — there is currently no real results data anywhere in the codebase; all existing model files (`football-model.js`, `rugby-fixtures.js`, `f1-fixtures.js`) generate pre-match probabilities only. Auto-settlement can't be built until this exists. Note: odds bundled into a provider's response are irrelevant/ignorable — BYN generates its own LMSR-driven odds regardless — so this doesn't need to be an "odds-free" API search, it just needs fixtures + final results.
+   - **Primary lead: API-SPORTS suite** (api-sports.io) — same vendor offers API-Football, API-Rugby, and API-Formula-1 under one account with consistent response shapes across all three, which is a better fit than mixing vendors per sport (one integration pattern instead of three). Free tier claims 100 req/day per API including results — but this conflicts with the handoff's existing note that the football free plan "lacks current season," so needs a direct 30-min spike against the real dashboard for football AND rugby coverage (Nations Championship, URC, Prem Rugby, Super Rugby Pacific specifically) before committing.
+   - **Fallback ladder if API-SPORTS doesn't cover a given competition:**
+     1. Check whether World Rugby's PulseLive feed (already integrated for the probability model's rankings) also exposes results — reuse over new vendor.
+     2. Official league/governing-body sites sometimes publish their own structured result feeds directly (more likely for lower-tier leagues like National League).
+     3. Scraping — last resort only, fragile and often against ToS; not something to build settlement reliability on.
+     4. Manual entry — narrow, per-competition stopgap only for whichever specific competition has no API/feed coverage, not a default for the whole system. Small admin form, phased out as real coverage is found for that competition.
+   - **F1:** no new vendor needed — OpenF1 (already integrated) has a `session_result` endpoint for final race classification.
+   - Output of this spike: confirmed provider(s) per competition + a `fixtures.result` column populated by a small sync job, before the settlement job itself is built.
+1. **Auto-settlement job** (Backend) — single server-side result per round instead of per-browser `Math.random()`. Depends on #0 above. All the settlement *mechanics* already exist and just need to be called automatically: `betService.settleBets()`, `persistenceManager.settleBetsInDB()`, `roundService.saveRoundStandings()`, `walletService.updateWalletBalance()`. Proposed implementation: Supabase pg_cron + Edge Function, triggered once real results are available per round.
 2. **Persist leagues to Supabase** (Backend) — `groups`/`group_members` tables, replacing React state.
 3. **Add `profiles.country`** (Backend) — small, but needed alongside #2 for real leaderboard filtering.
 4. **Real bot management** (Backend) — remove/replace bot simulation now that real cross-user standings exist.
