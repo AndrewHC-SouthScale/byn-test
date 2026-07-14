@@ -10,32 +10,41 @@ Rough dependency order for getting to a credible Google Play submission. Each ph
 
 **Phase 1 — Make multiplayer real** (nothing after this matters if this isn't true)
 0. **Results feed spike** (NEW — prerequisite to #1) — there is currently no real results data anywhere in the codebase; all existing model files (`football-model.js`, `rugby-fixtures.js`, `f1-fixtures.js`) generate pre-match probabilities only. Auto-settlement can't be built until this exists. Note: odds bundled into a provider's response are irrelevant/ignorable — BYN generates its own LMSR-driven odds regardless. **Paid options ruled out — free only.**
-   - **Football — confirmed:** football-data.org has a genuinely free-forever tier (12 competitions: PL, La Liga, Bundesliga, Serie A, Ligue 1, UCL, Eredivisie, Primeira Liga, Championship, Brazilian Serie A, World Cup, Euros). Covers **EPL, La Liga, UCL, and Championship** — 4 of BYN's 7 active football competitions, for free, permanently. This is the confirmed lead for those four.
-   - **Football — gap:** League One, League Two, National League have no free API coverage found so far (checked football-data.org, API-Football/API-SPORTS free tier, TheSportsDB). **Decision: deferred to a later phase.** These three competitions have been set `active: false` in `constants.js` (matches the existing pattern used for inactive comps like `fifa_wc`, `tennis`, etc). **Still needed: flip `active = false` for these three in Supabase `competitions` table too** — `constants.js` alone only hides them from the UI menus per the handoff's own activation notes; the DB flag is what the admin Fixtures tab and any future queries key off. Revisit once a free (or otherwise acceptable) source is found for lower English divisions.
-   - **Rugby — next step:** checking whether World Rugby's PulseLive feed (already integrated for the probability model's rankings in `rugby-fixtures.js`) also exposes match results — would be zero-cost since it's already integrated. In progress.
-   - **F1:** solved — OpenF1 (already integrated) has a `session_result` endpoint for final race classification.
+   - **Confirmed for Phase 1 — 5 competitions:** EPL, La Liga, UCL, Championship (all via football-data.org's free-forever tier — 12 competitions covered permanently, no cost) + F1 (via OpenF1's `session_result` endpoint, already integrated). **Auto-settlement scope shrunk to these 5 for Phase 1** so the multiplayer foundation isn't blocked on harder-to-source competitions.
+   - **Deferred to Phase 1b — Rugby (all 5 active comps) + lower English football:** Nations Championship, Rugby Championship, URC, Prem Rugby, Super Rugby Pacific, League One, League Two, National League. Set `active: false` in `constants.js`. **PulseLive checked and ruled out** — the only endpoint in use (`/rugby/v3/rankings/mru`) is pure power-rankings data (team/points/position), structurally has no fixture or result fields. A related unofficial `cmsapi.pulselive.com` endpoint (found via an old third-party project, not documented/supported) returned 401 and isn't a viable path either. No free results source identified yet for rugby or the lower football divisions — needs fresh research when this phase is picked back up.
+   - **Still needed: flip `active = false` for all 8 of the above in Supabase `competitions` table too** — `constants.js` alone only hides them from the UI menus; the DB flag is what the admin Fixtures tab and any future queries key off. SQL:
+     ```sql
+     UPDATE competitions
+     SET active = false
+     WHERE key IN ('league_one', 'league_two', 'national_league', 'prem_rugby', 'urc', 'super_rugby', 'nations_champ', 'rugby_champ');
+     ```
    - Output of this spike: confirmed provider(s) per competition + a `fixtures.result` column populated by a small sync job, before the settlement job itself is built.
-1. **Auto-settlement job** (Backend) — single server-side result per round instead of per-browser `Math.random()`. Depends on #0 above. All the settlement *mechanics* already exist and just need to be called automatically: `betService.settleBets()`, `persistenceManager.settleBetsInDB()`, `roundService.saveRoundStandings()`, `walletService.updateWalletBalance()`. Proposed implementation: Supabase pg_cron + Edge Function, triggered once real results are available per round.
+1. **Auto-settlement job** (Backend) — single server-side result per round instead of per-browser `Math.random()`, **scoped to EPL/La Liga/UCL/Championship/F1 for Phase 1**. All the settlement *mechanics* already exist and just need to be called automatically: `betService.settleBets()`, `persistenceManager.settleBetsInDB()`, `roundService.saveRoundStandings()`, `walletService.updateWalletBalance()`. Proposed implementation: Supabase pg_cron + Edge Function, triggered once real results are available per round.
 2. **Persist leagues to Supabase** (Backend) — `groups`/`group_members` tables, replacing React state.
 3. **Add `profiles.country`** (Backend) — small, but needed alongside #2 for real leaderboard filtering.
 4. **Real bot management** (Backend) — remove/replace bot simulation now that real cross-user standings exist.
 5. **Ad network integration** (Features → moved up) — wire real AdMob/Google Ad Manager now, not post-launch. The ad-boost button already exists in the UI promising "watch an ad, get 50 nuts" but isn't connected to a real network yet — that's a promise the app isn't keeping. More importantly, ad-boost is the primary revenue mechanism per the schema notes, not a bolt-on feature; launching without it and adding it in later reads to users as a bait-and-switch ("used to be ad-free, now it's not") rather than "how the app has always worked." Ship it as part of the core experience from day one.
 
+**Phase 1b — Rugby + lower English football back online**
+- Find a free (or otherwise acceptable) results source for rugby and League One/Two/National League — see notes under #0 above for what's already been ruled out.
+- Re-activate in both `constants.js` and Supabase `competitions` table once found.
+- Extend auto-settlement job to cover these competitions.
+
 **Phase 2 — Trust & compliance**
-6. **Age gating** — replace self-declared checkbox with captured DOB + server-side age check (17+, per schema notes on Apple's simulated-gambling rating; Google Play IARC will land similarly).
-7. **Incorporate SouthScale** (Companies House, £50) — unblocks business-owned accounts and a real entity behind the store listing.
-8. **ICO registration** (£40/year).
-9. **Transfer Supabase to SouthScale business account.**
+- **Age gating** — replace self-declared checkbox with captured DOB + server-side age check (17+, per schema notes on Apple's simulated-gambling rating; Google Play IARC will land similarly).
+- **Incorporate SouthScale** (Companies House, £50) — unblocks business-owned accounts and a real entity behind the store listing.
+- **ICO registration** (£40/year).
+- **Transfer Supabase to SouthScale business account.**
 
 **Phase 3 — Store-readiness cleanup**
-10. **Remove demo simulator buttons** ("Advance to lockout", "Simulate results").
-11. **Set real season lengths** — replace `SEASON_LENGTH_DEMO = 4`.
-12. **Reminder cron job** — finish this now that scheduled jobs infra exists from Phase 1.
-13. **Server-side ad verification** (Backend — firmed up, no longer optional) — verify ad completion via ad network callback before crediting nuts. Given ads are now a Phase 1 launch item rather than deferred, this is required, not "if ads ship at launch."
+- **Remove demo simulator buttons** ("Advance to lockout", "Simulate results").
+- **Set real season lengths** — replace `SEASON_LENGTH_DEMO = 4`.
+- **Reminder cron job** — finish this now that scheduled jobs infra exists from Phase 1.
+- **Server-side ad verification** (Backend — firmed up, no longer optional) — verify ad completion via ad network callback before crediting nuts. Given ads are now a Phase 1 launch item rather than deferred, this is required, not "if ads ship at launch."
 
 **Phase 4 — Store submission**
-14. Apple Sign In only matters if targeting iOS App Store — **not required for Google Play**, so it can move after launch if Play is the near-term target.
-15. Google Play listing, store assets, IARC content questionnaire.
+- Apple Sign In only matters if targeting iOS App Store — **not required for Google Play**, so it can move after launch if Play is the near-term target.
+- Google Play listing, store assets, IARC content questionnaire.
 
 **Explicitly deferred, not blockers:**
 - Stripe / league slot purchases — monetization can follow initial launch.
@@ -113,9 +122,9 @@ Rough dependency order for getting to a credible Google Play submission. Each ph
 - [ ] **NASCAR** — activate when probability model is built
 - [ ] **NBA** — activate October 2026
 - [x] **English football pyramid expanded** — Championship, League One, League Two, National League added. All 24 teams per division with full GW1 fixtures (12 matches each). Correct 2026-27 team rosters: relegated/promoted clubs accurately reflected. Probability models use team strength ratings from 2025-26 season performance. All start Aug 14-16, 2026. Admin fixtures report updated to include all 4 leagues.
-- [ ] **Update EFL fixtures when released** — Championship GW1 released June 25 (partially confirmed: Wolves vs Blackburn, Burnley vs West Ham). When exact GW1 fixtures are published, update `FIXTURES.championship`, `FIXTURES.league_one`, `FIXTURES.league_two`, `FIXTURES.national_league` in `api/football-model.js`. Update team ratings after first few rounds to reflect actual form. **Note: League One, League Two, National League set `active: false` in `constants.js`** as of the results-feed spike (see Path to launch Phase 1) — no free results API found for these divisions yet, so they're deferred until one is found. Championship stays active (covered free by football-data.org). Still need matching `active = false` update in Supabase `competitions` table.
-- [ ] **Update Premiership Rugby fixtures** — fixture list releasing July 2026, update `PREM_FIXTURES` in `rugby-fixtures.js`
-- [ ] **Update URC fixtures** — full round-by-round schedule available, add rounds 2+ to `URC_FIXTURES`
+- [ ] **Update EFL fixtures when released** — Championship GW1 released June 25 (partially confirmed: Wolves vs Blackburn, Burnley vs West Ham). When exact GW1 fixtures are published, update `FIXTURES.championship`, `FIXTURES.league_one`, `FIXTURES.league_two`, `FIXTURES.national_league` in `api/football-model.js`. Update team ratings after first few rounds to reflect actual form. **Note: League One, League Two, National League set `active: false` in `constants.js`** — deferred to Path to launch Phase 1b, no free results API found for these divisions yet. Championship stays active (covered free by football-data.org). Matching Supabase update SQL is in Phase 1b.
+- [ ] **Update Premiership Rugby fixtures** — fixture list releasing July 2026, update `PREM_FIXTURES` in `rugby-fixtures.js`. **Note: all 5 active rugby competitions (Prem Rugby, URC, Super Rugby Pacific, Nations Championship, Rugby Championship) set `active: false` in `constants.js`** — deferred to Path to launch Phase 1b. PulseLive checked and ruled out as a results source (rankings-only endpoint, no fixture/result data); no free alternative found yet. Matching Supabase update SQL is in Phase 1b.
+- [ ] **Update URC fixtures** — full round-by-round schedule available, add rounds 2+ to `URC_FIXTURES`. Same Phase 1b deactivation as above applies.
 - [ ] **Champions League** — activate September 2026
 - [ ] **Six Nations** — activate February 2027
 - [ ] **Super Rugby Pacific** — activate February 2027
